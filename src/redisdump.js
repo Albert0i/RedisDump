@@ -76,7 +76,7 @@ async function dumpRedis() {
 
     console.log(`Redis commands saved to ${REDISDUMP}`);
   } catch (err) {
-    console.error('❌ Error during dump:', err);
+    console.error('Error during dump:', err);
   } finally {
     console.log(counter)
     output.end();
