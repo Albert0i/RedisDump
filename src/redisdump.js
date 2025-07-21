@@ -78,9 +78,11 @@ async function dumpRedis() {
   } catch (err) {
     console.error('❌ Error during dump:', err);
   } finally {
+    console.log(counter)
     output.end();
     await redis.close();
   }
 }
 
 dumpRedis();
+process.exit(0)
