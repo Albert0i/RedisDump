@@ -5,7 +5,7 @@ import { redis } from './redis/redis.js'
 import { createWriteStream } from 'fs';
 
 const REDISDUMP = './data/dump.redis'
-const SCANCOUNT = 1000
+const SCANCOUNT = 1000  // adjust batch size as needed
 const output = createWriteStream(`${REDISDUMP}`, { flags: 'a' });
 
 async function dumpRedis() {
@@ -18,7 +18,7 @@ async function dumpRedis() {
     do {
       const result = await redis.scan(cursor, {
         MATCH: '*',
-        COUNT: SCANCOUNT, // adjust batch size as needed
+        COUNT: SCANCOUNT, 
       });
   
       cursor = result.cursor;
