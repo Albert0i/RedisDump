@@ -3,24 +3,22 @@
 */
 import { redis } from './redis/redis.js'
 import { createWriteStream } from 'fs';
+import { format } from 'date-fns';
 
-const REDISDUMP = './data/dump.redis'
-const SCANCOUNT = 1000  // adjust batch size as needed
-const output = createWriteStream(`${REDISDUMP}`, { flags: 'a' });
+async function dumpRedis(prefix, scanCount, outputFile) {
+  const output = createWriteStream(outputFile, { flags: 'w' });
+  let counter = 0; 
+  let cursor = '0';
+  let keys = []
 
-async function dumpRedis() {
+  console.log(`Saving Redis commands to ${outputFile} with prefix ${prefix}...`);    
   try {
-    await redis.connect();
-    let counter = 0; 
-    let cursor = '0';
-    let keys = []
-
     do {
       const result = await redis.scan(cursor, {
-        MATCH: '*',
-        COUNT: SCANCOUNT, 
+        MATCH: prefix,
+        COUNT: scanCount, 
       });
-  
+
       cursor = result.cursor;
       keys = result.keys;
 
@@ -68,21 +66,56 @@ async function dumpRedis() {
             output.write(`# Skipped ${key}: unsupported type "${type}"\n`);
         }
         counter = counter + 1 
-        if ((counter / SCANCOUNT) === Math.floor(counter / SCANCOUNT) ) {
+        if ((counter / scanCount) === Math.floor(counter / scanCount) ) {
           console.log(counter)
         }
       }
     } while (cursor !== '0');
-
-    console.log(`Redis commands saved to ${REDISDUMP}`);
   } catch (err) {
-    console.error('Error during dump:', err);
+    throw err;
   } finally {
     console.log(counter)
     output.end();
-    await redis.close();
   }
 }
 
-dumpRedis();
+/*
+   main 
+*/
+const args = process.argv.slice(2); 
+const prefix = args[0] || '*';  // default '*'
+const scanCount = 1000          // adjust batch size as needed
+
+const dateSuffix = format(new Date(), 'yyyy-MM-dd');
+const outputFile = `./data/dump (${dateSuffix}).redis`;
+
+if (args.includes('--help')) {
+  console.log(`
+redisdump.js - Dump Redis keys as executable redis-cli commands
+
+Usage:
+  node redisdump.js [KEY_PATTERN]
+
+Options:
+  --help           Show this help message
+  KEY_PATTERN      Optional Redis MATCH pattern (default: "*")
+
+Behavior:
+  - Uses SCAN with COUNT 1000 to iterate keys efficiently
+  - Overwrites output file on each run
+  - Creates a dump file named: dump (YYYY-MM-DD).redis
+  - Outputs native commands: SET, RPUSH, SADD, ZADD, HSET, JSON.SET
+  - Can be restored using: redis-cli < dump (YYYY-MM-DD).redos
+
+Examples:
+  node src/redisdump.js              # Dump all keys
+  node src/redisdump.js user:*       # Dump keys matching "user:*"
+  node src/redisdump.js --help       # Show help
+`);
+} else {
+  await redis.connect()
+  await dumpRedis(prefix, scanCount, outputFile);
+  await redis.close()
+}
+
 process.exit(0)
