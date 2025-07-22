@@ -1,4 +1,4 @@
-### RedisDump － <br />The last piece of puzzle
+### RedisDump － The last piece of puzzle
 
 An utility to dump String, List, Set, Sorted Set, Hash and Json six main data structures from Redis database.
 
