@@ -4,6 +4,8 @@
 import { redis } from './redis/redis.js'
 import { createWriteStream } from 'fs';
 import { format } from 'date-fns';
+import { info } from './help.js'
+import { luaCountKey } from './countKeys.js'
 
 async function dumpRedis(prefix, scanCount, outputFile) {
   const output = createWriteStream(outputFile, { flags: 'w' });
@@ -79,6 +81,12 @@ async function dumpRedis(prefix, scanCount, outputFile) {
   }
 }
 
+async function countKeys(prefix) {
+  return await redis.eval(luaCountKey, {
+    keys: prefix
+  });
+}
+
 /*
    main 
 */
@@ -90,30 +98,12 @@ const dateSuffix = format(new Date(), 'yyyy-MM-dd');
 const outputFile = `./data/dump (${dateSuffix}).redis`;
 
 if (args.includes('--help')) {
-  console.log(`
-redisdump.js - Dump Redis keys as executable redis-cli commands
-
-Usage:
-  node redisdump.js [KEY_PATTERN]
-
-Options:
-  --help           Show this help message
-  KEY_PATTERN      Optional Redis MATCH pattern (default: "*")
-
-Behavior:
-  - Uses SCAN with COUNT 1000 to iterate keys efficiently
-  - Overwrites output file on each run
-  - Creates a dump file named: dump (YYYY-MM-DD).redis
-  - Outputs native commands: SET, RPUSH, SADD, ZADD, HSET, JSON.SET
-  - Can be restored using: redis-cli < dump (YYYY-MM-DD).redos
-
-Examples:
-  node src/redisdump.js              # Dump all keys
-  node src/redisdump.js user:*       # Dump keys matching "user:*"
-  node src/redisdump.js --help       # Show help
-`);
+  console.log(info);
 } else {
   await redis.connect()
+  const [keys, size] = await countKeys(prefix)
+  console.log('Number of keys is', keys, 
+              ', data size is', Number(size / 1024 / 1024).toFixed(2), 'MB')
   await dumpRedis(prefix, scanCount, outputFile);
   await redis.close()
 }
