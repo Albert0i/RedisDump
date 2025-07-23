@@ -1,4 +1,79 @@
 
+
+```
+> script help
+1) "SCRIPT <subcommand> [<arg> [value] [opt] ...]. Subcommands are:"
+2) "DEBUG (YES|SYNC|NO)"
+3) "    Set the debug mode for subsequent scripts executed."
+4) "EXISTS <sha1> [<sha1> ...]"
+5) "    Return information about the existence of the scripts in the script cache."
+6) "FLUSH [ASYNC|SYNC]"
+7) "    Flush the Lua scripts cache. Very dangerous on replicas."
+8) "    When called without the optional mode argument, the behavior is determined by the"
+9) "    lazyfree-lazy-user-flush configuration directive. Valid modes are:"
+10) "    * ASYNC: Asynchronously flush the scripts cache."
+11) "    * SYNC: Synchronously flush the scripts cache."
+12) "KILL"
+13) "    Kill the currently executing Lua script."
+14) "LOAD <script>"
+15) "    Load a script into the scripts cache without executing it."
+16) "HELP"
+17) "    Print this help."
+```
+
+```
+> function help
+1) "FUNCTION <subcommand> [<arg> [value] [opt] ...]. Subcommands are:"
+2) "LOAD [REPLACE] <FUNCTION CODE>"
+3) "    Create a new library with the given library name and code."
+4) "DELETE <LIBRARY NAME>"
+5) "    Delete the given library."
+6) "LIST [LIBRARYNAME PATTERN] [WITHCODE]"
+7) "    Return general information on all the libraries:"
+8) "    * Library name"
+9) "    * The engine used to run the Library"
+10) "    * Library description"
+11) "    * Functions list"
+12) "    * Library code (if WITHCODE is given)"
+13) "    It also possible to get only function that matches a pattern using LIBRARYNAME argument."
+14) "STATS"
+15) "    Return information about the current function running:"
+16) "    * Function name"
+17) "    * Command used to run the function"
+18) "    * Duration in MS that the function is running"
+19) "    If no function is running, return nil"
+20) "    In addition, returns a list of available engines."
+21) "KILL"
+22) "    Kill the current running function."
+23) "FLUSH [ASYNC|SYNC]"
+24) "    Delete all the libraries."
+25) "    When called without the optional mode argument, the behavior is determined by the"
+26) "    lazyfree-lazy-user-flush configuration directive. Valid modes are:"
+27) "    * ASYNC: Asynchronously flush the libraries."
+28) "    * SYNC: Synchronously flush the libraries."
+29) "DUMP"
+30) "    Return a serialized payload representing the current libraries, can be restored using FUNCTION RESTORE command"
+31) "RESTORE <PAYLOAD> [FLUSH|APPEND|REPLACE]"
+32) "    Restore the libraries represented by the given payload, it is possible to give a restore policy to"
+33) "    control how to handle existing libraries (default APPEND):"
+34) "    * FLUSH: delete all existing libraries."
+35) "    * APPEND: appends the restored libraries to the existing libraries. On collision, abort."
+36) "    * REPLACE: appends the restored libraries to the existing libraries, On collision, replace the old"
+37) "      libraries with the new libraries (notice that even on this option there is a chance of failure"
+38) "      in case of functions name collision with another library)."
+39) "HELP"
+40) "    Print this help."
+```
+
+
+
+1. [Redis programmability](https://redis.io/docs/latest/develop/programmability/)
+2. [Scripting with Lua](https://redis.io/docs/latest/develop/programmability/eval-intro/)
+3. [Redis Lua API reference](https://redis.io/docs/latest/develop/programmability/lua-api/)
+4. [Redis functions](https://redis.io/docs/latest/develop/programmability/functions-intro/)
+5. []()
+
+
 > FUNCTION HELP
  "FUNCTION <subcommand> [<arg> [value] [opt] ...]. Subcommands are:"
  "LOAD [REPLACE] <FUNCTION CODE>"
