@@ -86,15 +86,19 @@ Read-only script history
 - If the script had already performed even a single write operation, the only command allowed is SHUTDOWN NOSAVE that stops the server without saving the current data set on disk (basically, the server is aborted).
 
 [Redis functions](https://redis.io/docs/latest/develop/programmability/functions-intro/)
+
 Scripting with Redis 7 and beyond
 
 [Scripting with Lua](https://redis.io/docs/latest/develop/programmability/eval-intro/)
+
 Executing Lua in Redis
 
 [Redis Lua API reference](https://redis.io/docs/latest/develop/programmability/lua-api/)
+
 Executing Lua in Redis
 
 [Debugging Lua scripts in Redis](https://redis.io/docs/latest/develop/programmability/lua-debugging/)
+
 How to use the built-in Lua debugger
 
 
