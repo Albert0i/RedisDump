@@ -1,15 +1,35 @@
 #!lua name=mylib
 
 redis.register_function('ver', function(KEYS, ARGV) 
+    -- No parameter is required: 
+    -- Example usage: FCALL VER 0
+    -- Output: "8.0.2"
+
     return redis.REDIS_VERSION 
 end )
 
-redis.register_function('countKeys', function(KEYS, ARGV)
-    -- KEYS[1] = prefix pattern (e.g., "user:*")
-    local cursor = "0"
-    local totalCount = 0  
-    local totalSize = 0   
+redis.register_function('toFix', function(KEYS, ARGV)
+    -- KEYS[1] = Number to be rounded
+    -- KEYS[2] = Dcimal positions
+    -- Example usage: FCALL TOFIX 2 123.456 2
+    -- Output: "123.46"
 
+    local n = KEYS[1]
+    local digits = KEYS[2]
+
+    return string.format("%." .. (digits or 0) .. "f", n)
+end )
+
+redis.register_function('countKeys', function(KEYS, ARGV)
+    -- KEYS[1] = Prefix pattern (e.g., "user:*")
+    -- Example usage: FCALL COUNTKEYS 1 fts:chinese:documents:*
+    -- Output:  1) "29104"
+    --          2) "53.10M"
+
+    local cursor = "0"
+    local totalCount = 0 
+    local totalSize = 0 
+    local totalSizeHuman = 0
 
     repeat
     local result = redis.call("SCAN", cursor, "MATCH", KEYS[1], "COUNT", 1000)
@@ -27,29 +47,44 @@ redis.register_function('countKeys', function(KEYS, ARGV)
     end
     until cursor == "0"
 
-    return { totalCount, totalSize }
+    totalSizeHuman = string.format("%." .. (2) .. "f", totalSize / 1024 /1024) .. 'M'
+
+    -- return { totalCount, totalSize }
+    return { totalCount, totalSizeHuman }
 end )
 
 redis.register_function('zAddIncr', function(KEYS, ARGV) 
-    -- KEYS[1] = sorted set key
-    -- ARGV[1] = member name
+    -- KEYS[1] = Sorted Set key
+    -- ARGV[] = One or more members 
+    -- Example usage: FCALL ZADDINCR 1 testz a b c d e f 
+    -- Output: 6
 
-    local added = redis.call('ZADD', KEYS[1], 'NX', 1, ARGV[1])
+    local key = KEYS[1]
+    local added = 0
+    local n = 0
 
-    if added == 0 then
-    -- Member existed, increment score
-    return redis.call('ZINCRBY', KEYS[1], 1, ARGV[1])
-    else
-    -- Member was added with initial score of 1
-    return 1
+    for i = 1, #ARGV do
+      -- Add with initial score of 1
+      added = redis.call('ZADD', key, 'NX', 1, ARGV[i])
+
+      -- Member existed, increment score
+      if added == 0 then 
+        redis.call('ZINCRBY', key, 1, ARGV[i])
+      end
+      n = n + 1
     end
+    
+    return n
 end )
 
 redis.register_function('zSumScore', function(KEYS, ARGV) 
-    -- KEYS[1] = sorted set key
+    -- KEYS[1] = Sorted Set key
+    -- Example usage: FCALL ZSUMSCORE 1 testz
+    -- Output: 6
 
+    local key = KEYS[1]
     local total = 0
-    local members = redis.call('ZRANGE', KEYS[1], 0, -1, 'WITHSCORES')
+    local members = redis.call('ZRANGE', key, 0, -1, 'WITHSCORES')
 
     for i = 2, #members, 2 do
     total = total + tonumber(members[i])
