@@ -9,7 +9,7 @@ Redis Cloud *does* provide remote backup functionalities:
 
 Which makes me sweat, the only usable option is to setup a FTP Server with public ip. In addition, the backup is done on 24 hours interval.  
 
-So... I ask HIM to build `redisdump.js`: 
+Data is the protagonist of any non-trivial applications, I extensively use Hash to store data and Sorted Set for index purposes. So... I ask HIM to build one...
 
 ![alt redisdump-help](img/redisdump-help.JPG)
 
