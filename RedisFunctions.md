@@ -52,6 +52,50 @@
 - They can be used to configure an ACL user to only be able to execute read-only scripts.
 - Many clients also better support routing the read-only script commands to replicas for applications that want to use replicas for read scaling.
 
+Read-only script history 
+
+> Read-only scripts and read-only script commands were introduced in Redis 7.0
+
+- Before Redis 7.0.1 [PUBLISH](https://redis.io/docs/latest/commands/publish/), [SPUBLISH](https://redis.io/docs/latest/commands/spublish/) and [PFCOUNT](https://redis.io/docs/latest/commands/pfcount/) were not considered write commands in scripts
+- Before Redis 7.0.1 the no-writes [flag](https://redis.io/docs/latest/develop/programmability/lua-api/#script_flags) did not imply allow-oom
+- Before Redis 7.0.1 the no-writes [flag](https://redis.io/docs/latest/develop/programmability/lua-api/#script_flags) did not permit the script to run during write pauses.
+
+> The recommended approach is to use the standard scripting commands with the no-writes flag unless you need one of the previously mentioned features.
+
+**Sandboxed script context** 
+
+> Redis places the engine that executes user scripts inside a sandbox. The sandbox attempts to prevent accidental misuse and reduce potential threats from the server's environment.
+
+> Scripts should never try to access the Redis server's underlying host systems, such as the file system, network, or attempt to perform any other system call other than those supported by the API.
+
+> Scripts should operate solely on data stored in Redis and data provided as arguments to their execution.
+
+**Maximum execution time**
+
+> Scripts are subject to a maximum execution time (set by default to five seconds). This default timeout is enormous since a script usually runs in less than a millisecond. The limit is in place to handle accidental infinite loops created during development.
+
+> It is possible to modify the maximum time a script can be executed with millisecond precision, either via redis.conf or by using the [CONFIG SET](https://redis.io/docs/latest/commands/config-set/) command. The configuration parameter affecting max execution time is called busy-reply-threshold.
+
+> When a script reaches the timeout threshold, it isn't terminated by Redis automatically. Doing so would violate the contract between Redis and the scripting engine that ensures that scripts are atomic. Interrupting the execution of a script has the potential of leaving the dataset with half-written changes.
+
+> Therefore, when a script executes longer than the configured timeout, the following happens:
+
+- Redis logs that a script is running for too long.
+- It starts accepting commands again from other clients but will reply with a BUSY error to all the clients sending normal commands. The only commands allowed in this state are SCRIPT KILL, FUNCTION KILL, and SHUTDOWN NOSAVE.
+- It is possible to terminate a script that only executes read-only commands using the SCRIPT KILL and FUNCTION KILL commands. These commands do not violate the scripting semantic as no data was written to the dataset by the script yet.
+- If the script had already performed even a single write operation, the only command allowed is SHUTDOWN NOSAVE that stops the server without saving the current data set on disk (basically, the server is aborted).
+
+Redis functions
+Scripting with Redis 7 and beyond
+
+Scripting with Lua
+Executing Lua in Redis
+
+Redis Lua API reference
+Executing Lua in Redis
+
+Debugging Lua scripts in Redis
+How to use the built-in Lua debugger
 
 
 #### II. 
