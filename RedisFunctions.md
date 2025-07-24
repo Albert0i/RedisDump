@@ -251,7 +251,7 @@ redis> HGETALL myhash
 1. The `my_hgetall` Redis Function will return all fields and their respective values from a given Hash key name, excluding the metadata (i.e., the `_last_modified_` field).
 2. The `my_hlastmodified` Redis Function will return the modification timestamp for a given Hash key name.
 
-The library's source code could look something like the following:
+> The library's source code could look something like the following:
 ```
 #!lua name=mylib
 
@@ -286,7 +286,7 @@ redis.register_function('my_hlastmodified', my_hlastmodified)
 $ cat mylib.lua | redis-cli -x FUNCTION LOAD REPLACE
 ```
 
-Once loaded, you can call the library's functions with [FCALL](https://redis.io/docs/latest/commands/fcall/):
+> Once loaded, you can call the library's functions with [FCALL](https://redis.io/docs/latest/commands/fcall/):
 ```
 redis> FCALL my_hgetall 1 myhash
 1) "myfield"
@@ -297,7 +297,7 @@ redis> FCALL my_hlastmodified 1 myhash
 "1640772721"
 ```
 
-You can also get the library's details with the [FUNCTION LIST](https://redis.io/docs/latest/commands/function-list/) command:
+> You can also get the library's details with the [FUNCTION LIST](https://redis.io/docs/latest/commands/function-list/) command:
 ```
 redis> FUNCTION LIST
 1) 1) "library_name"
@@ -325,13 +325,13 @@ redis> FUNCTION LIST
          6) (empty array)
 ```
 
-You can see that it is easy to update our library with new capabilities.
+> You can see that it is easy to update our library with new capabilities.
 
 **Reusing code in the library**
 
 On top of bundling functions together into database-managed software artifacts, libraries also facilitate code sharing. We can add to our library an error handling helper function called from other functions. The helper function check_keys() verifies that the input keys table has a single key. Upon success it returns nil, otherwise it returns an [error reply](https://redis.io/docs/latest/develop/programmability/lua-api/#redis.error_reply).
 
-The updated library's source code would be:
+> The updated library's source code would be:
 ```
 #!lua name=mylib
 
@@ -390,7 +390,7 @@ redis.register_function('my_hgetall', my_hgetall)
 redis.register_function('my_hlastmodified', my_hlastmodified)
 ```
 
-After you've replaced the library in Redis with the above, you can immediately try out the new error handling mechanism:
+> After you've replaced the library in Redis with the above, you can immediately try out the new error handling mechanism:
 ```
 127.0.0.1:6379> FCALL my_hset 0 myhash nope nope
 (error) Hash key name not provided
@@ -398,7 +398,7 @@ After you've replaced the library in Redis with the above, you can immediately t
 (error) Only one key name is allowed
 ```
 
-And your Redis log file should have lines in it that are similar to:
+> And your Redis log file should have lines in it that are similar to:
 ```
 ...
 20075:M 1 Jan 2022 16:53:57.688 # Hash key name not provided
@@ -407,17 +407,22 @@ And your Redis log file should have lines in it that are similar to:
 
 **Functions in cluster**
 
-As noted above, Redis automatically handles propagation of loaded functions to replicas. In a Redis Cluster, it is also necessary to load functions to all cluster nodes. This is not handled automatically by Redis Cluster, and needs to be handled by the cluster administrator (like module loading, configuration setting, etc.).
+> As noted above, Redis automatically handles propagation of loaded functions to replicas. In a Redis Cluster, it is also necessary to load functions to all cluster nodes. This is not handled automatically by Redis Cluster, and needs to be handled by the cluster administrator (like module loading, configuration setting, etc.).
 
-As one of the goals of functions is to live separately from the client application, this should not be part of the Redis client library responsibilities. Instead, redis-cli --cluster-only-masters --cluster call host:port FUNCTION LOAD ... can be used to execute the load command on all master nodes.
+> As one of the goals of functions is to live separately from the client application, this should not be part of the Redis client library responsibilities. Instead, redis-cli --cluster-only-masters --cluster call host:port FUNCTION LOAD ... can be used to execute the load command on all master nodes.
 
-Also, note that redis-cli --cluster add-node automatically takes care to propagate the loaded functions from one of the existing nodes to the new node.
+> Also, note that redis-cli --cluster add-node automatically takes care to propagate the loaded functions from one of the existing nodes to the new node.
 
 **Functions and ephemeral Redis instances**
 
-In some cases there may be a need to start a fresh Redis server with a set of functions pre-loaded. Common reasons for that could be:
+> In some cases there may be a need to start a fresh Redis server with a set of functions pre-loaded. Common reasons for that could be:
 
+- Starting Redis in a new environment
+- Re-starting an ephemeral (cache-only) Redis, that uses functions
 
+> In such cases, we need to make sure that the pre-loaded functions are available before Redis accepts inbound user connections and commands.
+
+> To do that, it is possible to use redis-cli --functions-rdb to extract the functions from an existing server. This generates an RDB file that can be loaded by Redis at startup.
 
 **Function flags**
 
