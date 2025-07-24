@@ -106,7 +106,7 @@ redis.register_function('scanTextChi', function(KEYS, ARGV)
     Lua script to scan Redis for hashes matching "document:*"
     and return HASH objects.
 
-    Required: :
+    Required:
         KEYS[1] - Key pattern to scan for, "documents:" for example;
         KEYS[2] - Field name to scan for, "textChi" for example;
         KEYS[3] - Value to scan for, "韓非子" for example; 
