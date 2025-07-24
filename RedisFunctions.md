@@ -81,20 +81,20 @@ Read-only script history
 > Therefore, when a script executes longer than the configured timeout, the following happens:
 
 - Redis logs that a script is running for too long.
-- It starts accepting commands again from other clients but will reply with a BUSY error to all the clients sending normal commands. The only commands allowed in this state are SCRIPT KILL, FUNCTION KILL, and SHUTDOWN NOSAVE.
-- It is possible to terminate a script that only executes read-only commands using the SCRIPT KILL and FUNCTION KILL commands. These commands do not violate the scripting semantic as no data was written to the dataset by the script yet.
+- It starts accepting commands again from other clients but will reply with a BUSY error to all the clients sending normal commands. The only commands allowed in this state are [SCRIPT KILL](https://redis.io/docs/latest/commands/script-kill/), [FUNCTION KILL](https://redis.io/docs/latest/commands/function-kill/), and SHUTDOWN NOSAVE.
+- It is possible to terminate a script that only executes read-only commands using the [SCRIPT KILL](https://redis.io/docs/latest/commands/script-kill/) and [FUNCTION KILL](https://redis.io/docs/latest/commands/function-kill/) commands. These commands do not violate the scripting semantic as no data was written to the dataset by the script yet.
 - If the script had already performed even a single write operation, the only command allowed is SHUTDOWN NOSAVE that stops the server without saving the current data set on disk (basically, the server is aborted).
 
-Redis functions
+[Redis functions](https://redis.io/docs/latest/develop/programmability/functions-intro/)
 Scripting with Redis 7 and beyond
 
-Scripting with Lua
+[Scripting with Lua](https://redis.io/docs/latest/develop/programmability/eval-intro/)
 Executing Lua in Redis
 
-Redis Lua API reference
+[Redis Lua API reference](https://redis.io/docs/latest/develop/programmability/lua-api/)
 Executing Lua in Redis
 
-Debugging Lua scripts in Redis
+[Debugging Lua scripts in Redis](https://redis.io/docs/latest/develop/programmability/lua-debugging/)
 How to use the built-in Lua debugger
 
 
