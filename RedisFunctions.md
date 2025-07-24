@@ -71,4 +71,5 @@ FUNCTION <subcommand> [<arg> [value] [opt] ...]. Subcommands are:
 2. [Scripting with Lua](https://redis.io/docs/latest/develop/programmability/eval-intro/)
 3. [Redis Lua API reference](https://redis.io/docs/latest/develop/programmability/lua-api/)
 4. [Redis functions](https://redis.io/docs/latest/develop/programmability/functions-intro/)
-5. [Debugging Lua scripts in Redis](https://redis.io/docs/latest/develop/programmability/lua-debugging/)
+5. [Lua 5.1 Reference Manual](https://www.lua.org/manual/5.1/manual.html)
+6. [Debugging Lua scripts in Redis](https://redis.io/docs/latest/develop/programmability/lua-debugging/)

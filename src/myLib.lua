@@ -9,30 +9,36 @@ redis.register_function('ver', function(KEYS, ARGV)
 end )
 
 redis.register_function('toFix', function(KEYS, ARGV)
-    -- KEYS[1] = Number to be rounded
-    -- KEYS[2] = Dcimal positions
+    -- Required: 
+    --      KEYS[1] = Number to be rounded
+    -- Optional: 
+    --      KEYS[2] = Dcimal positions, 2 if unspecified
     -- Example usage: FCALL TOFIX 2 123.456 2
+    --                FCALL TOFIX 1 123.456
     -- Output: "123.46"
 
     local n = KEYS[1]
-    local digits = KEYS[2]
+    local digits = KEYS[2] or 2
 
     return string.format("%." .. (digits or 0) .. "f", n)
 end )
 
 redis.register_function('countKeys', function(KEYS, ARGV)
-    -- KEYS[1] = Prefix pattern (e.g., "user:*")
+    -- Optional: 
+    --      KEYS[1] = Prefix pattern (e.g., "user:*"), * if unspecified 
     -- Example usage: FCALL COUNTKEYS 1 fts:chinese:documents:*
+    --                FCALL COUNTKEYS 0
     -- Output:  1) "29104"
     --          2) "53.10M"
 
+    local key = KEYS[1] or '*'
     local cursor = "0"
     local totalCount = 0 
     local totalSize = 0 
     local totalSizeHuman = 0
 
     repeat
-    local result = redis.call("SCAN", cursor, "MATCH", KEYS[1], "COUNT", 1000)
+    local result = redis.call("SCAN", cursor, "MATCH", key, "COUNT", 1000)
     cursor = result[1]
     local keys = result[2]
 
@@ -54,8 +60,9 @@ redis.register_function('countKeys', function(KEYS, ARGV)
 end )
 
 redis.register_function('zAddIncr', function(KEYS, ARGV) 
-    -- KEYS[1] = Sorted Set key
-    -- ARGV[] = One or more members 
+    -- Required:
+    --      KEYS[1] = Sorted Set key
+    --      ARGV[] = One or more members 
     -- Example usage: FCALL ZADDINCR 1 testz a b c d e f 
     -- Output: 6
 
@@ -78,7 +85,8 @@ redis.register_function('zAddIncr', function(KEYS, ARGV)
 end )
 
 redis.register_function('zSumScore', function(KEYS, ARGV) 
-    -- KEYS[1] = Sorted Set key
+    -- Required:
+    --      KEYS[1] = Sorted Set key
     -- Example usage: FCALL ZSUMSCORE 1 testz
     -- Output: 6
 
@@ -98,11 +106,11 @@ redis.register_function('scanTextChi', function(KEYS, ARGV)
     Lua script to scan Redis for hashes matching "document:*"
     and return HASH objects.
 
-    Parameters:
+    Required: :
         KEYS[1] - Key pattern to scan for, "documents:" for example;
         KEYS[2] - Field name to scan for, "textChi" for example;
         KEYS[3] - Value to scan for, "韓非子" for example; 
-    Optional parameters:     
+    Optional:
         KEYS[4] - The number of documents to skip, 0 if unspecified; 
         KEYS[5] - The maximum number of documents to return, 10 if unspecified; 
         ARGV[] - Fields to be returned, ["id", "textChi", "visited"] for example. 
