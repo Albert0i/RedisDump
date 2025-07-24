@@ -102,7 +102,7 @@ Executing Lua in Redis
 How to use the built-in Lua debugger
 
 
-#### II. [Redis Functions](https://redis.io/docs/latest/develop/programmability/functions-intro/)
+#### II. [Redis Functions](https://redis.io/docs/latest/develop/programmability/functions-intro/) (TL;DR)
 > Scripting with Redis 7 and beyond
 
 > Redis Functions is an API for managing code to be executed on the server. This feature, which became available in Redis 7, supersedes the use of [EVAL](https://redis.io/docs/latest/develop/programmability/eval-intro/) in prior versions of Redis.
@@ -192,6 +192,143 @@ We've provided [FCALL](https://redis.io/docs/latest/commands/fcall/) with two ar
 We'll explain immediately how key names and additional arguments are available to the function. As this simple example doesn't involve keys, we simply use 0 for now.
 
 **Input keys and regular arguments**
+
+> Before we move to the following example, it is vital to understand the distinction Redis makes between arguments that are names of keys and those that aren't.
+
+> While key names in Redis are just strings, unlike any other string values, these represent keys in the database. The name of a key is a fundamental concept in Redis and is the basis for operating the Redis Cluster.
+
+> **Important**: To ensure the correct execution of Redis Functions, both in standalone and clustered deployments, all names of keys that a function accesses must be explicitly provided as input key arguments.
+
+> Any input to the function that isn't the name of a key is a regular input argument.
+
+> Now, let's pretend that our application stores some of its data in Redis Hashes. We want an [HSET](https://redis.io/docs/latest/commands/hset/)-like way to set and update fields in said Hashes and store the last modification time in a new field named `_last_modified_`. We can implement a function to do all that.
+
+> Our function will call [TIME](https://redis.io/docs/latest/commands/time/) to get the server's clock reading and update the target Hash with the new fields' values and the modification's timestamp. The function we'll implement accepts the following input arguments: the Hash's key name and the field-value pairs to update.
+
+> The Lua API for Redis Functions makes these inputs accessible as the first and second arguments to the function's callback. The callback's first argument is a Lua table populated with all key names inputs to the function. Similarly, the callback's second argument consists of all regular arguments.
+
+The following is a possible implementation for our function and its library registration:
+```
+#!lua name=mylib
+
+local function my_hset(keys, args)
+  local hash = keys[1]
+  local time = redis.call('TIME')[1]
+  return redis.call('HSET', hash, '_last_modified_', time, unpack(args))
+end
+
+redis.register_function('my_hset', my_hset)
+```
+
+If we create a new file named *mylib.lua* that consists of the library's definition, we can load it like so (without stripping the source code of helpful whitespaces):
+```
+$ cat mylib.lua | redis-cli -x FUNCTION LOAD REPLACE
+```
+
+> We've added the REPLACE modifier to the call to [FUNCTION LOAD](https://redis.io/docs/latest/commands/function-load/) to tell Redis that we want to overwrite the existing library definition. Otherwise, we would have gotten an error from Redis complaining that the library already exists.
+
+> Now that the library's updated code is loaded to Redis, we can proceed and call our function:
+```
+redis> FCALL my_hset 1 myhash myfield "some value" another_field "another value"
+(integer) 3
+redis> HGETALL myhash
+1) "_last_modified_"
+2) "1640772721"
+3) "myfield"
+4) "some value"
+5) "another_field"
+6) "another value"
+```
+
+> In this case, we had invoked [FCALL](https://redis.io/docs/latest/commands/fcall/) with 1 as the number of key name arguments. That means that the function's first input argument is a name of a key (and is therefore included in the callback's keys table). After that first argument, all following input arguments are considered regular arguments and constitute the args table passed to the callback as its second argument.
+
+**Expanding the library**
+
+> We can add more functions to our library to benefit our application. The additional metadata field we've added to the Hash shouldn't be included in responses when accessing the Hash's data. On the other hand, we do want to provide the means to obtain the modification timestamp for a given Hash key.
+
+> We'll add two new functions to our library to accomplish these objectives:
+
+1. The `my_hgetall` Redis Function will return all fields and their respective values from a given Hash key name, excluding the metadata (i.e., the `_last_modified_` field).
+2. The `my_hlastmodified` Redis Function will return the modification timestamp for a given Hash key name.
+
+The library's source code could look something like the following:
+```
+#!lua name=mylib
+
+local function my_hset(keys, args)
+  local hash = keys[1]
+  local time = redis.call('TIME')[1]
+  return redis.call('HSET', hash, '_last_modified_', time, unpack(args))
+end
+
+local function my_hgetall(keys, args)
+  redis.setresp(3)
+  local hash = keys[1]
+  local res = redis.call('HGETALL', hash)
+  res['map']['_last_modified_'] = nil
+  return res
+end
+
+local function my_hlastmodified(keys, args)
+  local hash = keys[1]
+  return redis.call('HGET', hash, '_last_modified_')
+end
+
+redis.register_function('my_hset', my_hset)
+redis.register_function('my_hgetall', my_hgetall)
+redis.register_function('my_hlastmodified', my_hlastmodified)
+```
+
+> While all of the above should be straightforward, note that the `my_hgetall` also calls `redis.setresp(3)`. That means that the function expects [RESP3](https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md) replies after calling `redis.call()`, which, unlike the default RESP2 protocol, provides dictionary (associative arrays) replies. Doing so allows the function to delete (or set to nil as is the case with Lua tables) specific fields from the reply, and in our case, the `_last_modified_` field.
+
+> Assuming you've saved the library's implementation in the *mylib.lua* file, you can replace it with:
+```
+$ cat mylib.lua | redis-cli -x FUNCTION LOAD REPLACE
+```
+
+Once loaded, you can call the library's functions with [FCALL](https://redis.io/docs/latest/commands/fcall/):
+```
+redis> FCALL my_hgetall 1 myhash
+1) "myfield"
+2) "some value"
+3) "another_field"
+4) "another value"
+redis> FCALL my_hlastmodified 1 myhash
+"1640772721"
+```
+
+You can also get the library's details with the [FUNCTION LIST](https://redis.io/docs/latest/commands/function-list/) command:
+```
+redis> FUNCTION LIST
+1) 1) "library_name"
+   2) "mylib"
+   3) "engine"
+   4) "LUA"
+   5) "functions"
+   6) 1) 1) "name"
+         2) "my_hset"
+         3) "description"
+         4) (nil)
+         5) "flags"
+         6) (empty array)
+      2) 1) "name"
+         2) "my_hgetall"
+         3) "description"
+         4) (nil)
+         5) "flags"
+         6) (empty array)
+      3) 1) "name"
+         2) "my_hlastmodified"
+         3) "description"
+         4) (nil)
+         5) "flags"
+         6) (empty array)
+```
+
+You can see that it is easy to update our library with new capabilities.
+
+**Reusing code in the library**
+
 
 
 
