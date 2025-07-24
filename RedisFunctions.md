@@ -1,4 +1,4 @@
-### Redis Function 
+### [Redis Functions](https://redis.io/docs/latest/develop/programmability/functions-intro/)
 
 
 #### Prologue 
@@ -102,7 +102,29 @@ Executing Lua in Redis
 How to use the built-in Lua debugger
 
 
-#### II. 
+#### II. [Redis Functions](https://redis.io/docs/latest/develop/programmability/functions-intro/)
+> Scripting with Redis 7 and beyond
+
+> Redis Functions is an API for managing code to be executed on the server. This feature, which became available in Redis 7, supersedes the use of [EVAL](https://redis.io/docs/latest/develop/programmability/eval-intro/) in prior versions of Redis.
+
+**Prologue (or, what's wrong with Eval Scripts?)**
+
+Prior versions of Redis made scripting available only via the [EVAL](https://redis.io/docs/latest/commands/eval/) command, which allows a Lua script to be sent for execution by the server. The core use cases for [Eval Scripts](https://redis.io/docs/latest/develop/programmability/eval-intro/) is executing part of your application logic inside Redis, efficiently and atomically. Such script can perform conditional updates across multiple keys, possibly combining several different data types.
+
+Using [EVAL](https://redis.io/docs/latest/commands/eval/) requires that the application sends the entire script for execution every time. Because this results in network and script compilation overheads, Redis provides an optimization in the form of the [EVALSHA](https://redis.io/docs/latest/commands/evalsha/) command. By first calling [SCRIPT LOAD](https://redis.io/docs/latest/commands/script-load/) to obtain the script's SHA1, the application can invoke it repeatedly afterward with its digest alone.
+
+By design, Redis only caches the loaded scripts. That means that the script cache can become lost at any time, such as after calling [SCRIPT FLUSH](https://redis.io/docs/latest/commands/script-flush/), after restarting the server, or when failing over to a replica. The application is responsible for reloading scripts during runtime if any are missing. The underlying assumption is that scripts are a part of the application and not maintained by the Redis server.
+
+This approach suits many light-weight scripting use cases, but introduces several difficulties once an application becomes complex and relies more heavily on scripting, namely:
+
+1. All client application instances must maintain a copy of all scripts. That means having some mechanism that applies script updates to all of the application's instances.
+2. Calling cached scripts within the context of a [transaction](https://redis.io/docs/latest/develop/using-commands/transactions/) increases the probability of the transaction failing because of a missing script. Being more likely to fail makes using cached scripts as building blocks of workflows less attractive.
+3. SHA1 digests are meaningless, making debugging the system extremely hard (e.g., in a [MONITOR](https://redis.io/docs/latest/commands/monitor/) session).
+4. When used naively, [EVAL](https://redis.io/docs/latest/commands/eval/) promotes an anti-pattern in which scripts the client application renders verbatim scripts instead of responsibly using the [KEYS and ARGV Lua APIs](https://redis.io/docs/latest/develop/programmability/lua-api/#runtime-globals).
+5. Because they are ephemeral, a script can't call another script. This makes sharing and reusing code between scripts nearly impossible, short of client-side preprocessing (see the first point).
+
+> To address these needs while avoiding breaking changes to already-established and well-liked ephemeral scripts, Redis v7.0 introduces Redis Functions.
+
 
 
 #### III. 
