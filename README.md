@@ -1,16 +1,15 @@
 ### RedisDump － The last piece of puzzle
 
-> An utility to dump String, List, Set, Sorted Set, Hash and Json six main data structures from Redis database.
+> An utility to dump [String](https://redis.io/docs/latest/develop/data-types/strings/), [List](https://redis.io/docs/latest/develop/data-types/lists/), [Set](https://redis.io/docs/latest/develop/data-types/sets/), [Sorted Set](https://redis.io/docs/latest/develop/data-types/sorted-sets/), [Hash](https://redis.io/docs/latest/develop/data-types/hashes/) and [Json](https://redis.io/docs/latest/develop/data-types/json/) six main data structures from Redis database.
 
+I was thinking there exists a utility akin to [mysqldump](https://dev.mysql.com/doc/refman/8.4/en/mysqldump.html) in [MariaDB](https://mariadb.org/) for Redis, which helps me backup data from my [Redis Cloud](https://redis.io/cloud/) account as well as instances running on local machine. 
 
-I was thinking there was a utility akin to [mysqldump](https://dev.mysql.com/doc/refman/8.4/en/mysqldump.html) in MariaDB for Redis, which helps me backup data from my [Redis Cloud](https://redis.io/cloud/) account as well as Redis instances running locally. 
-
-Redis Cloud does provide remote backup functionalities:
+Redis Cloud *does* provide remote backup functionalities:
 ![alt remotebackup-2](img/remotebackup-2.JPG)
 
 Which makes me sweat, the only usable option is to setup a FTP Server with public ip. In addition, the backup is done on 24 hours interval.  
 
-So... I ask HIM to build `redisdump.js` for me: 
+So... I ask HIM to build `redisdump.js`: 
 
 ![alt redisdump-help](img/redisdump-help.JPG)
 
@@ -24,7 +23,7 @@ node src/redisdump.js
 
 ![alt redisdump](img/redisdump.JPG)
 
-To dump data out of Redis Cloud is a slow process, better not to do it in peak hour, it is a backup after all. You can always push `dump.redis` back into Redis Cloud via the Bulk Action in [Redis Insight](https://redis.io/insight/). 
+To dump data out of Redis Cloud is a *slow* process, better not to do it in peak hour, it is a backup after all. You can always push `dump (yyyy-mm-dd).redis` back into Redis via the Bulk Action in [Redis Insight](https://redis.io/insight/). 
 
 ![alt bulk-actions](img/bulk-actions.JPG)
 
