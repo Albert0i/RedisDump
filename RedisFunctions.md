@@ -143,7 +143,7 @@ This approach suits many light-weight scripting use cases, but introduces severa
 
 > Functions are intended to better support the use case of maintaining a consistent view for data entities through a logical schema, as mentioned above. As such, functions are stored alongside the data itself. **Functions are also persisted to the AOF file and replicated from master to replicas, so they are as durable as the data itself.** When Redis is used as an ephemeral cache, additional mechanisms (described below) are required to make functions more durable.
 
-> Like all other operations in Redis, the execution of a function is atomic. A function's execution blocks all server activities during its entire time, similarly to the semantics of transactions. These semantics mean that all of the script's effects either have yet to happen or had already happened. **The blocking semantics of an executed function apply to all connected clients at all times. Because running a function blocks the Redis server, functions are meant to finish executing quickly, so you should avoid using long-running functions**.
+> Like all other operations in Redis, the execution of a function is atomic. A function's execution blocks all server activities during its entire time, similarly to the semantics of [transactions](https://redis.io/docs/latest/develop/using-commands/transactions/). These semantics mean that all of the script's effects either have yet to happen or had already happened. **The blocking semantics of an executed function apply to all connected clients at all times. Because running a function blocks the Redis server, functions are meant to finish executing quickly, so you should avoid using long-running functions**.
 
 
 
