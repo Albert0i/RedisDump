@@ -1,5 +1,25 @@
+### Redis Function 
+
+#### Prologue 
+
+#### I. 
 
 
+#### II. 
+
+
+#### V. Bibliography
+1. [Redis programmability](https://redis.io/docs/latest/develop/programmability/)
+2. [Scripting with Lua](https://redis.io/docs/latest/develop/programmability/eval-intro/)
+3. [Redis Lua API reference](https://redis.io/docs/latest/develop/programmability/lua-api/)
+4. [Redis functions](https://redis.io/docs/latest/develop/programmability/functions-intro/)
+5. [Lua 5.1 Reference Manual](https://www.lua.org/manual/5.1/)
+6. [Debugging Lua scripts in Redis](https://redis.io/docs/latest/develop/programmability/lua-debugging/)
+
+
+
+#### Appendix
+**Script command summary**
 ```
 SCRIPT <subcommand> [<arg> [value] [opt] ...]. Subcommands are:
 
@@ -21,6 +41,7 @@ SCRIPT <subcommand> [<arg> [value] [opt] ...]. Subcommands are:
         Print this help.
 ```
 
+**Function command summary**
 ```
 FUNCTION <subcommand> [<arg> [value] [opt] ...]. Subcommands are:
 
@@ -66,10 +87,7 @@ FUNCTION <subcommand> [<arg> [value] [opt] ...]. Subcommands are:
 ```
 
 
+#### Epilogue 
 
-1. [Redis programmability](https://redis.io/docs/latest/develop/programmability/)
-2. [Scripting with Lua](https://redis.io/docs/latest/develop/programmability/eval-intro/)
-3. [Redis Lua API reference](https://redis.io/docs/latest/develop/programmability/lua-api/)
-4. [Redis functions](https://redis.io/docs/latest/develop/programmability/functions-intro/)
-5. [Lua 5.1 Reference Manual](https://www.lua.org/manual/5.1/manual.html)
-6. [Debugging Lua scripts in Redis](https://redis.io/docs/latest/develop/programmability/lua-debugging/)
+
+### EOF (2025/07/31)
