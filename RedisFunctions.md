@@ -125,6 +125,25 @@ This approach suits many light-weight scripting use cases, but introduces severa
 
 > To address these needs while avoiding breaking changes to already-established and well-liked ephemeral scripts, Redis v7.0 introduces Redis Functions.
 
+**What are Redis Functions?**
+
+> Redis functions are an evolutionary step from ephemeral scripting.
+
+> Functions provide the same core functionality as scripts but are first-class software artifacts of the database. Redis manages functions as an integral part of the database and ensures their availability via data persistence and replication. Because functions are part of the database and therefore declared before use, applications aren't required to load them during runtime nor risk aborted transactions. An application that uses functions depends only on their APIs rather than on the embedded script logic in the database.
+
+> Whereas ephemeral scripts are considered a part of the application's domain, functions extend the database server itself with user-provided logic. They can be used to expose a richer API composed of core Redis commands, similar to modules, developed once, loaded at startup, and used repeatedly by various applications / clients. Every function has a unique user-defined name, making it much easier to call and trace its execution.
+
+> The design of Redis Functions also attempts to demarcate between the programming language used for writing functions and their management by the server. Lua, the only language interpreter that Redis presently support as an embedded execution engine, is meant to be simple and easy to learn. However, the choice of Lua as a language still presents many Redis users with a challenge.
+
+> The Redis Functions feature makes no assumptions about the implementation's language. An execution engine that is part of the definition of the function handles running it. An engine can theoretically execute functions in any language as long as it respects several rules (such as the ability to terminate an executing function).
+
+> Presently, as noted above, Redis ships with a single embedded Lua 5.1 engine. There are plans to support additional engines in the future. Redis functions can use all of Lua's available capabilities to ephemeral scripts, with the only exception being the Redis Lua scripts debugger.
+
+> Functions also simplify development by enabling code sharing. Every function belongs to a single library, and any given library can consist of multiple functions. The library's contents are immutable, and selective updates of its functions aren't allowed. Instead, libraries are updated as a whole with all of their functions together in one operation. This allows calling functions from other functions within the same library, or sharing code between functions by using a common code in library-internal methods, that can also take language native arguments.
+
+> Functions are intended to better support the use case of maintaining a consistent view for data entities through a logical schema, as mentioned above. As such, functions are stored alongside the data itself. Functions are also persisted to the AOF file and replicated from master to replicas, so they are as durable as the data itself. When Redis is used as an ephemeral cache, additional mechanisms (described below) are required to make functions more durable.
+
+> Like all other operations in Redis, the execution of a function is atomic. A function's execution blocks all server activities during its entire time, similarly to the semantics of transactions. These semantics mean that all of the script's effects either have yet to happen or had already happened. The blocking semantics of an executed function apply to all connected clients at all times. Because running a function blocks the Redis server, functions are meant to finish executing quickly, so you should avoid using long-running functions.
 
 
 #### III. 
