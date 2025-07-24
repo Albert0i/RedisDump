@@ -187,7 +187,7 @@ redis> FCALL knockknock 0
 
 Notice that the [FUNCTION LOAD](https://redis.io/docs/latest/commands/function-load/) command returns the name of the loaded library, this name can later be used [FUNCTION LIST](https://redis.io/docs/latest/commands/function-list/) and [FUNCTION DELETE](https://redis.io/docs/latest/commands/function-delete/).
 
-We've provided [FCALL](https://redis.io/docs/latest/commands/fcall/) with two arguments: the function's registered name and the numeric value 0. This numeric value indicates the number of key names that follow it (the same way EVAL and EVALSHA work).
+We've provided [FCALL](https://redis.io/docs/latest/commands/fcall/) with two arguments: the function's registered name and the numeric value 0. This numeric value indicates the number of key names that follow it (the same way [EVAL](https://redis.io/docs/latest/commands/eval/) and [EVALSHA](https://redis.io/docs/latest/commands/evalsha/) work).
 
 We'll explain immediately how key names and additional arguments are available to the function. As this simple example doesn't involve keys, we simply use 0 for now.
 
