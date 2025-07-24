@@ -145,6 +145,55 @@ This approach suits many light-weight scripting use cases, but introduces severa
 
 > Like all other operations in Redis, the execution of a function is atomic. A function's execution blocks all server activities during its entire time, similarly to the semantics of [transactions](https://redis.io/docs/latest/develop/using-commands/transactions/). These semantics mean that all of the script's effects either have yet to happen or had already happened. **The blocking semantics of an executed function apply to all connected clients at all times. Because running a function blocks the Redis server, functions are meant to finish executing quickly, so you should avoid using long-running functions**.
 
+**Loading libraries and functions** 
+
+> Let's explore Redis Functions via some tangible examples and Lua snippets.
+
+> At this point, if you're unfamiliar with Lua in general and specifically in Redis, you may benefit from reviewing some of the examples in [Introduction to Eval Scripts](https://redis.io/docs/latest/develop/programmability/eval-intro/) and [Lua API](https://redis.io/docs/latest/develop/programmability/lua-api/) pages for a better grasp of the language.
+
+> Every Redis function belongs to a single library that's loaded to Redis. Loading a library to the database is done with the [FUNCTION LOAD](https://redis.io/docs/latest/commands/function-load/) command. The command gets the library payload as input, the library payload must start with Shebang statement that provides a metadata about the library (like the engine to use and the library name). The Shebang format is:
+```
+#!<engine name> name=<library name>
+```
+
+Let's try loading an empty library:
+```
+redis> FUNCTION LOAD "#!lua name=mylib\n"
+(error) ERR No functions registered
+```
+
+The error is expected, as there are no functions in the loaded library. Every library needs to include at least one registered function to load successfully. A registered function is named and acts as an entry point to the library. When the target execution engine handles the [FUNCTION LOAD](https://redis.io/docs/latest/commands/function-load/) command, it registers the library's functions.
+
+The Lua engine compiles and evaluates the library source code when loaded, and expects functions to be registered by calling the `redis.register_function()` API.
+
+The following snippet demonstrates a simple library registering a single function named knockknock, returning a string reply:
+```
+#!lua name=mylib
+redis.register_function(
+  'knockknock',
+  function() return 'Who\'s there?' end
+)
+```
+
+In the example above, we provide two arguments about the function to Lua's redis.register_function() API: its registered name and a callback.
+
+We can load our library and use [FCALL](https://redis.io/docs/latest/commands/fcall/) to call the registered function:
+```
+redis> FUNCTION LOAD "#!lua name=mylib\nredis.register_function('knockknock', function() return 'Who\\'s there?' end)"
+mylib
+redis> FCALL knockknock 0
+"Who's there?"
+```
+
+Notice that the [FUNCTION LOAD](https://redis.io/docs/latest/commands/function-load/) command returns the name of the loaded library, this name can later be used [FUNCTION LIST](https://redis.io/docs/latest/commands/function-list/) and [FUNCTION DELETE](https://redis.io/docs/latest/commands/function-delete/).
+
+We've provided [FCALL](https://redis.io/docs/latest/commands/fcall/) with two arguments: the function's registered name and the numeric value 0. This numeric value indicates the number of key names that follow it (the same way EVAL and EVALSHA work).
+
+We'll explain immediately how key names and additional arguments are available to the function. As this simple example doesn't involve keys, we simply use 0 for now.
+
+**Input keys and regular arguments**
+
+
 
 
 #### III. 
