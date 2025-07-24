@@ -1,11 +1,19 @@
 ### Redis Function 
 
+
 #### Prologue 
+
 
 #### I. 
 
 
 #### II. 
+
+
+#### III. 
+
+
+#### IV. 
 
 
 #### V. Bibliography
@@ -18,7 +26,7 @@
 
 
 
-#### Appendix
+#### VI. Appendix
 **Script command summary**
 ```
 SCRIPT <subcommand> [<arg> [value] [opt] ...]. Subcommands are:
