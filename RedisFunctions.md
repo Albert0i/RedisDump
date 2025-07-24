@@ -329,7 +329,83 @@ You can see that it is easy to update our library with new capabilities.
 
 **Reusing code in the library**
 
+On top of bundling functions together into database-managed software artifacts, libraries also facilitate code sharing. We can add to our library an error handling helper function called from other functions. The helper function check_keys() verifies that the input keys table has a single key. Upon success it returns nil, otherwise it returns an [error reply](https://redis.io/docs/latest/develop/programmability/lua-api/#redis.error_reply).
 
+The updated library's source code would be:
+```
+#!lua name=mylib
+
+local function check_keys(keys)
+  local error = nil
+  local nkeys = table.getn(keys)
+  if nkeys == 0 then
+    error = 'Hash key name not provided'
+  elseif nkeys > 1 then
+    error = 'Only one key name is allowed'
+  end
+
+  if error ~= nil then
+    redis.log(redis.LOG_WARNING, error);
+    return redis.error_reply(error)
+  end
+  return nil
+end
+
+local function my_hset(keys, args)
+  local error = check_keys(keys)
+  if error ~= nil then
+    return error
+  end
+
+  local hash = keys[1]
+  local time = redis.call('TIME')[1]
+  return redis.call('HSET', hash, '_last_modified_', time, unpack(args))
+end
+
+local function my_hgetall(keys, args)
+  local error = check_keys(keys)
+  if error ~= nil then
+    return error
+  end
+
+  redis.setresp(3)
+  local hash = keys[1]
+  local res = redis.call('HGETALL', hash)
+  res['map']['_last_modified_'] = nil
+  return res
+end
+
+local function my_hlastmodified(keys, args)
+  local error = check_keys(keys)
+  if error ~= nil then
+    return error
+  end
+
+  local hash = keys[1]
+  return redis.call('HGET', keys[1], '_last_modified_')
+end
+
+redis.register_function('my_hset', my_hset)
+redis.register_function('my_hgetall', my_hgetall)
+redis.register_function('my_hlastmodified', my_hlastmodified)
+```
+
+After you've replaced the library in Redis with the above, you can immediately try out the new error handling mechanism:
+```
+127.0.0.1:6379> FCALL my_hset 0 myhash nope nope
+(error) Hash key name not provided
+127.0.0.1:6379> FCALL my_hgetall 2 myhash anotherone
+(error) Only one key name is allowed
+```
+
+And your Redis log file should have lines in it that are similar to:
+```
+...
+20075:M 1 Jan 2022 16:53:57.688 # Hash key name not provided
+20075:M 1 Jan 2022 16:54:01.309 # Only one key name is allowed
+```
+
+**Functions in cluster**
 
 
 
