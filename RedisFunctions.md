@@ -696,7 +696,7 @@ FROM documents
 WHERE textChi LIKE '%鄭文公%'
 ```
 
-`scanTextChi` is practically doing a SCAN key and test of condition and thus inefficient. 
+`scanTextChi` is practically doing a SCAN key and test of condition, is an inefficient way of searching... 
 ```
 > FCALL_RO SCANTEXTCHI 5 fts:chinese:documents:* key 鄭文公 0 10 id textChi visited
 1) 1) "11199"
