@@ -426,6 +426,53 @@ redis.register_function('my_hlastmodified', my_hlastmodified)
 
 **Function flags**
 
+> Redis needs to have some information about how a function is going to behave when executed, in order to properly enforce resource usage policies and maintain data consistency.
+
+> For example, Redis needs to know that a certain function is read-only before permitting it to execute using [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) on a read-only replica.
+
+> By default, Redis assumes that all functions may perform arbitrary read or write operations. Function Flags make it possible to declare more specific function behavior at the time of registration. Let's see how this works.
+
+> In our previous example, we defined two functions that only read data. We can try executing them using [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) against a read-only replica.
+```
+redis > FCALL_RO my_hgetall 1 myhash
+(error) ERR Can not execute a function with write flag using fcall_ro.
+```
+
+> Redis returns this error because a function can, in theory, perform both read and write operations on the database. As a safeguard and by default, Redis assumes that the function does both, so it blocks its execution. The server will reply with this error in the following cases:
+
+1. Executing a function with [FCALL](https://redis.io/docs/latest/commands/fcall/) against a read-only replica.
+2. Using [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) to execute a function.
+3. A disk error was detected (Redis is unable to persist so it rejects writes).
+
+> In these cases, you can add the no-writes flag to the function's registration, disable the safeguard and allow them to run. To register a function with flags use the [named arguments](https://redis.io/docs/latest/develop/programmability/lua-api/#redis.register_function_named_args) variant of `redis.register_function`.
+
+> The updated registration code snippet from the library looks like this:
+```
+redis.register_function('my_hset', my_hset)
+redis.register_function{
+  function_name='my_hgetall',
+  callback=my_hgetall,
+  flags={ 'no-writes' }
+}
+redis.register_function{
+  function_name='my_hlastmodified',
+  callback=my_hlastmodified,
+  flags={ 'no-writes' }
+}
+```
+
+> Once we've replaced the library, Redis allows running both `my_hgetall` and `my_hlastmodified` with [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) against a read-only replica:
+```
+redis> FCALL_RO my_hgetall 1 myhash
+1) "myfield"
+2) "some value"
+3) "another_field"
+4) "another value"
+redis> FCALL_RO my_hlastmodified 1 myhash
+"1640772721"
+```
+
+For the complete documentation flags, please refer to [Script flags](https://redis.io/docs/latest/develop/programmability/lua-api/#script_flags).
 
 
 #### III. 
