@@ -476,7 +476,33 @@ For the complete documentation flags, please refer to [Script flags](https://red
 
 
 #### III. 
+```
+redis.register_function('myfunc', function(KEYS, ARGV) 
+    -- Required: 
+    -- Optional: 
+    -- Example usage: 
+    -- Output: 
 
+    <place your lua script here>
+    
+end )
+```
+
+```
+redis.register_function{
+    function_name = 'myfunc',
+    callback = function(KEYS, ARGV)
+      -- Required: 
+      -- Optional: 
+      -- Example usage: 
+      -- Output: 
+
+      <place your lua script here>
+
+    end,
+    flags = { 'no-writes' }
+  }
+```
 
 #### IV. 
 

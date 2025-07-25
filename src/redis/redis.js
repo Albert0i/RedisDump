@@ -17,6 +17,11 @@ redis.fCall = function(name, keys = [], args = []) {
     return this.sendCommand(['FCALL', name, numkeys, ...keys, ...args]);
   };
 
+redis.fCallRo = function(name, keys = [], args = []) {
+    const numkeys = keys.length.toString();
+    return this.sendCommand(['FCALL_RO', name, numkeys, ...keys, ...args]);
+  };
+
 export { redis }
 
 /*
