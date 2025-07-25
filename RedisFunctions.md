@@ -601,33 +601,91 @@ Done!
 
 #### IV. Example usage
 ##### **Really trivial things**
+To get the Redis Version with: 
 ```
-FCALL_RO VER 0
-FCALL_RO TOFIX 2 123.456 2
-FCALL_RO TOFIX 1 123.456
+> FCALL_RO VER 0
+"8.0.2"
+```
+
+To round up a number to number of decimals: 
+```
+> FCALL_RO TOFIX 2 123.456 2
+"123.46"
+
+> FCALL_RO TOFIX 1 123.456
+"123.46"
 ```
 
 ##### **Utility functions**
 ```
-FCALL_RO COUNTKEYS 1 fts:chinese:documents:*
-FCALL_RO COUNTKEYS 0
-FCALL DELALL 1 temp:*
+> FCALL_RO COUNTKEYS 1 DONGDICT:*
+1) "28792"
+2) "32.73M"
+
+> FCALL_RO COUNTKEYS 1 DIRINDEX:*
+1) "31009"
+2) "25.07M"
+```
+
+```
+> FCALL DELALL 1 temp:*
+3
+
+> FCALL DELALL 1 cache:*
+12
 ```
 
 ##### **Extension to underlaying Data Structures**
 ```
-FCALL ZADDINCR 1 testz a b c d e f 
-FCALL_RO ZSUMSCORE 1 testz
+> FCALL ZADDINCR 1 testz a b c d e f 
+(integer) 6
+
+> FCALL ZADDINCR 1 testz a b c d e
+(integer) 5
+
+> FCALL ZADDINCR 1 testz a b c d
+(integer) 4
+
+> FCALL ZADDINCR 1 testz a b c
+(integer) 3
+
+> FCALL ZADDINCR 1 testz a b
+(integer) 2
+
+> FCALL ZADDINCR 1 testz a
+(integer) 1
+
+> FCALL_RO ZSUMSCORE 1 testz
+(integer) 21
 ```
 
 ##### **Proof of concept**
 ```
-FCALL_RO SCANTEXTCHI 5 fts:chinese:documents:* key 鄭文公 0 10  id textChi visited
-FCALL_RO SCANTEXTCHI 3 fts:chinese:documents:* key 鄭文公
+> FCALL_RO SCANTEXTCHI 5 fts:chinese:documents:* key 鄭文公 0 10 id textChi visited
+1) 1) "11199"
+   2) "\xe9\x84\xad\xe6\x96\x87\xe5\x85\xac<br / ..."
+   3) "0"
+```
+```   
+> FCALL_RO SCANTEXTCHI 3 fts:chinese:documents:* key 鄭文公
+1) 1) "updatedAt"
+   2) ""
+   3) "updateIdent"
+   4) "0"
+   5) "createdAt"
+   6) "2025-07-17T00:36:15.301Z"
+   7) "id"
+   8) "11199"
+   9) "textChi"
+   10) "\xe9\x84\xad\xe6\x96\x87\xe5\x85\xac<br / ..."
+   11) "visited"
+   12) "0"
+   13) "key"
+   14) "\xe9\x84\xad\xe6\x96\x87\xe5\x85\xac"
 ```
 
-##### **sendCommand**
-Call it straightly: 
+##### **Raw interface**
+Call with `sendCommand`: 
 ```
 console.log(await redis.sendCommand(['FCALL_RO', 'VER', '0']))
 console.log(await redis.sendCommand(['FCALL_RO', 'COUNTKEYS', '0']))
@@ -638,8 +696,8 @@ console.log(await redis.sendCommand(['FCALL_RO', 'SCANTEXTCHI', '3',
     'fts:chinese:documents:*', 'key', '陳文公'])) 
 ```
 
-##### **fCall** and **fCallRo**
-Or more intuitively, to wrap the sendCommands with: 
+##### **The Wrapper**
+To wrap up with: 
 ```
 redis.fCall = function(name, keys = [], args = []) {
     const numkeys = keys.length.toString();
@@ -652,7 +710,7 @@ redis.fCallRo = function(name, keys = [], args = []) {
   };
 ```
 
-Call it accordingly: 
+And call it intuitively: 
 ```
 console.log(await redis.fCallRo('ver', [], []))
 console.log(await redis.fCallRo('countKeys', [], []))
