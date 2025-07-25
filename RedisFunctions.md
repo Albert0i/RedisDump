@@ -9,7 +9,7 @@
 
 > Redis provides a programming interface that lets you execute custom scripts on the server itself. In Redis 7 and beyond, you can use [Redis Functions](https://redis.io/docs/latest/develop/programmability/functions-intro/) to manage and run your scripts. In Redis 6.2 and below, you use [Lua scripting with the EVAL command](https://redis.io/docs/latest/develop/programmability/eval-intro/) to program the server.
 
-**Background** 
+##### **Background** 
 
 > Redis is, by [definition](https://github.com/redis/redis/blob/unstable/MANIFESTO#L7), a *"domain-specific language for abstract data types"*. The language that Redis speaks consists of its [commands](https://redis.io/docs/latest/commands/). Most the commands specialize at manipulating core [data types](https://redis.io/docs/latest/develop/data-types/) in different ways. In many cases, these commands provide all the functionality that a developer requires for managing application data in Redis.
 
@@ -19,7 +19,7 @@
 
 > Please refer to the [Redis Lua API Reference](https://redis.io/docs/latest/develop/programmability/lua-api/) page for complete documentation.
 
-**Running scripts**
+##### **Running scripts**
 
 > Redis provides two means for running scripts.
 
@@ -36,7 +36,7 @@
 
 > Note that the potential downside of this blocking approach is that executing slow scripts is not a good idea. It is not hard to create fast scripts because scripting's overhead is very low. However, if you intend to use a slow script in your application, be aware that all other clients are blocked and can't execute any command while it is running.
 
-**Read-only scripts**
+##### **Read-only scripts**
 
 > A read-only script is a script that only executes commands that don't modify any keys within Redis. Read-only scripts can be executed either by adding the no-writes [flag](https://redis.io/docs/latest/develop/programmability/lua-api/#script_flags) to the script or by executing the script with one of the read-only script command variants: [EVAL_RO](https://redis.io/docs/latest/commands/eval_ro/), [EVALSHA_RO](https://redis.io/docs/latest/commands/evalsha_ro/), or [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/). They have the following properties:
 
@@ -62,7 +62,7 @@ Read-only script history
 
 > The recommended approach is to use the standard scripting commands with the no-writes flag unless you need one of the previously mentioned features.
 
-**Sandboxed script context** 
+##### **Sandboxed script context** 
 
 > Redis places the engine that executes user scripts inside a sandbox. The sandbox attempts to prevent accidental misuse and reduce potential threats from the server's environment.
 
@@ -70,7 +70,7 @@ Read-only script history
 
 > Scripts should operate solely on data stored in Redis and data provided as arguments to their execution.
 
-**Maximum execution time**
+##### **Maximum execution time**
 
 > Scripts are subject to a maximum execution time (set by default to five seconds). This default timeout is enormous since a script usually runs in less than a millisecond. The limit is in place to handle accidental infinite loops created during development.
 
@@ -107,7 +107,7 @@ How to use the built-in Lua debugger
 
 > Redis Functions is an API for managing code to be executed on the server. This feature, which became available in Redis 7, supersedes the use of [EVAL](https://redis.io/docs/latest/develop/programmability/eval-intro/) in prior versions of Redis.
 
-**Prologue (or, what's wrong with Eval Scripts?)**
+##### **Prologue (or, what's wrong with Eval Scripts?)**
 
 Prior versions of Redis made scripting available only via the [EVAL](https://redis.io/docs/latest/commands/eval/) command, which allows a Lua script to be sent for execution by the server. The core use cases for [Eval Scripts](https://redis.io/docs/latest/develop/programmability/eval-intro/) is executing part of your application logic inside Redis, efficiently and atomically. Such script can perform conditional updates across multiple keys, possibly combining several different data types.
 
@@ -125,7 +125,7 @@ This approach suits many light-weight scripting use cases, but introduces severa
 
 > To address these needs while avoiding breaking changes to already-established and well-liked ephemeral scripts, Redis v7.0 introduces Redis Functions.
 
-**What are Redis Functions?**
+##### **What are Redis Functions?**
 
 > Redis functions are an evolutionary step from ephemeral scripting.
 
@@ -145,7 +145,7 @@ This approach suits many light-weight scripting use cases, but introduces severa
 
 > Like all other operations in Redis, the execution of a function is atomic. A function's execution blocks all server activities during its entire time, similarly to the semantics of [transactions](https://redis.io/docs/latest/develop/using-commands/transactions/). These semantics mean that all of the script's effects either have yet to happen or had already happened. **The blocking semantics of an executed function apply to all connected clients at all times. Because running a function blocks the Redis server, functions are meant to finish executing quickly, so you should avoid using long-running functions**.
 
-**Loading libraries and functions** 
+##### **Loading libraries and functions** 
 
 > Let's explore Redis Functions via some tangible examples and Lua snippets.
 
@@ -191,7 +191,7 @@ We've provided [FCALL](https://redis.io/docs/latest/commands/fcall/) with two ar
 
 We'll explain immediately how key names and additional arguments are available to the function. As this simple example doesn't involve keys, we simply use 0 for now.
 
-**Input keys and regular arguments**
+##### **Input keys and regular arguments**
 
 > Before we move to the following example, it is vital to understand the distinction Redis makes between arguments that are names of keys and those that aren't.
 
@@ -242,7 +242,7 @@ redis> HGETALL myhash
 
 > In this case, we had invoked [FCALL](https://redis.io/docs/latest/commands/fcall/) with 1 as the number of key name arguments. That means that the function's first input argument is a name of a key (and is therefore included in the callback's keys table). After that first argument, all following input arguments are considered regular arguments and constitute the args table passed to the callback as its second argument.
 
-**Expanding the library**
+##### **Expanding the library**
 
 > We can add more functions to our library to benefit our application. The additional metadata field we've added to the Hash shouldn't be included in responses when accessing the Hash's data. On the other hand, we do want to provide the means to obtain the modification timestamp for a given Hash key.
 
@@ -327,7 +327,7 @@ redis> FUNCTION LIST
 
 > You can see that it is easy to update our library with new capabilities.
 
-**Reusing code in the library**
+##### **Reusing code in the library**
 
 On top of bundling functions together into database-managed software artifacts, libraries also facilitate code sharing. We can add to our library an error handling helper function called from other functions. The helper function check_keys() verifies that the input keys table has a single key. Upon success it returns nil, otherwise it returns an [error reply](https://redis.io/docs/latest/develop/programmability/lua-api/#redis.error_reply).
 
@@ -405,7 +405,7 @@ redis.register_function('my_hlastmodified', my_hlastmodified)
 20075:M 1 Jan 2022 16:54:01.309 # Only one key name is allowed
 ```
 
-**Functions in cluster**
+##### **Functions in cluster**
 
 > As noted above, Redis automatically handles propagation of loaded functions to replicas. In a Redis Cluster, it is also necessary to load functions to all cluster nodes. This is not handled automatically by Redis Cluster, and needs to be handled by the cluster administrator (like module loading, configuration setting, etc.).
 
@@ -413,7 +413,7 @@ redis.register_function('my_hlastmodified', my_hlastmodified)
 
 > Also, note that redis-cli --cluster add-node automatically takes care to propagate the loaded functions from one of the existing nodes to the new node.
 
-**Functions and ephemeral Redis instances**
+##### **Functions and ephemeral Redis instances**
 
 > In some cases there may be a need to start a fresh Redis server with a set of functions pre-loaded. Common reasons for that could be:
 
