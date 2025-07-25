@@ -424,7 +424,7 @@ redis.register_function('my_hlastmodified', my_hlastmodified)
 
 > To do that, it is possible to use redis-cli --functions-rdb to extract the functions from an existing server. This generates an RDB file that can be loaded by Redis at startup.
 
-**Function flags**
+##### **Function flags**
 
 > Redis needs to have some information about how a function is going to behave when executed, in order to properly enforce resource usage policies and maintain data consistency.
 
