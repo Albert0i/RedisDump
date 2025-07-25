@@ -518,7 +518,7 @@ redis.register_function{
   }
 ```
 
-The first line states that you are using Lua as scripting engine and the library name is mylib. Functions of read/write and read only bear different syntax. You can create a file mixed with read write and read only function as I do. All functions of a library have to loaded in one go. 
+The first line states that you are using Lua as scripting engine and the library name is mylib. Functions of read/write and read only bear different syntax. You can create a file mixed with read write and read only functions as I do. All functions of a library have to loaded in one go. 
 
 `loader.js`
 ```
