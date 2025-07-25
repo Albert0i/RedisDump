@@ -613,7 +613,7 @@ You can use Redis Functions to do:
 ##### **Utility functions**
 
 
-##### **Extension to underlaying Data Structures*
+##### **Extension to underlaying Data Structures**
 
 
 ##### **Proof of concept**
@@ -626,7 +626,7 @@ You can use Redis Functions to do:
 4. [Redis functions](https://redis.io/docs/latest/develop/programmability/functions-intro/)
 5. [Lua 5.1 Reference Manual](https://www.lua.org/manual/5.1/)
 6. [Debugging Lua scripts in Redis](https://redis.io/docs/latest/develop/programmability/lua-debugging/)
-
+7. [The Castle by Franz Kafka](https://files.libcom.org/files/Franz%20Kafka-The%20Castle%20(Oxford%20World's%20Classics)%20(2009).pdf)
 
 
 #### VI. Appendix
