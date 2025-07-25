@@ -607,7 +607,7 @@ To get the Redis Version with:
 "8.0.2"
 ```
 
-To round up a number to number of decimals: 
+To round up a number to a certain of decimal place: 
 ```
 > FCALL_RO TOFIX 2 123.456 2
 "123.46"
@@ -617,6 +617,7 @@ To round up a number to number of decimals:
 ```
 
 ##### **Utility functions**
+Sometimes it is necessary to check number of keys of a pattern and it's size: 
 ```
 > FCALL_RO COUNTKEYS 1 DONGDICT:*
 1) "28792"
@@ -627,6 +628,7 @@ To round up a number to number of decimals:
 2) "25.07M"
 ```
 
+Sometimes it is necessary to remove keys of a pattern: 
 ```
 > FCALL DELALL 1 temp:*
 3
@@ -636,6 +638,7 @@ To round up a number to number of decimals:
 ```
 
 ##### **Extension to underlaying Data Structures**
+Set, being the best candidate for data deduplication, sometimes it is convenient to keep the their number of  occurrence. Every time a member is added to Sorted Set, it's score is increased by one: 
 ```
 > FCALL ZADDINCR 1 testz a b c d e f 
 (integer) 6
@@ -657,6 +660,32 @@ To round up a number to number of decimals:
 
 > FCALL_RO ZSUMSCORE 1 testz
 (integer) 21
+```
+
+With `ZADDINCR` and `ZSUMSCORE`, it is possible to keep track of Cardinality, Membership and Frequency in a Sorted Set. 
+```
+> ZCARD testz
+(integer) 6
+
+> ZSCORE testz a
+"6"
+
+> ZSCORE testz g
+(nil)
+
+> ZRANGE testz 0 -1 REV WITHSCORES
+1) "a"
+2) "6"
+3) "b"
+4) "5"
+5) "c"
+6) "4"
+7) "d"
+8) "3"
+9) "e"
+10) "2"
+11) "f"
+12) "1"
 ```
 
 ##### **Proof of concept**
