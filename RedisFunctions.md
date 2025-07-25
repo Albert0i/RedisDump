@@ -475,7 +475,13 @@ redis> FCALL_RO my_hlastmodified 1 myhash
 For the complete documentation flags, please refer to [Script flags](https://redis.io/docs/latest/develop/programmability/lua-api/#script_flags).
 
 
-#### III. 
+#### III. A Quick Start Guide 
+- [Redis programmability](https://redis.io/docs/latest/develop/programmability/)
+- [Scripting with Lua](https://redis.io/docs/latest/develop/programmability/eval-intro/)
+- [Redis functions](https://redis.io/docs/latest/develop/programmability/functions-intro/)
+
+Code template for Redis function: 
+`myLib.lua`
 ```
 #!lua name=mylib
 
@@ -490,6 +496,8 @@ redis.register_function('myfunc', function(KEYS, ARGV)
   end )
 ```
 
+Code template for Redis function with **no-writes** [flag](https://redis.io/docs/latest/develop/programmability/lua-api/#script_flags): 
+`myLib.lua`
 ```
 #!lua name=mylib
 
@@ -507,6 +515,7 @@ redis.register_function{
     flags = { 'no-writes' }
   }
 ```
+
 
 #### IV. 
 
