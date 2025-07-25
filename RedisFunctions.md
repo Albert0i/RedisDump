@@ -480,7 +480,9 @@ For those who don't want to crawl through official documentations:
 
 - [Redis programmability](https://redis.io/docs/latest/develop/programmability/) section outlines the whole picture of Redis programming ecology. 
 - [Scripting with Lua](https://redis.io/docs/latest/develop/programmability/eval-intro/) section describes scripting with Lua script in general.
-- [Redis functions](https://redis.io/docs/latest/develop/programmability/functions-intro/) section describes the new Redis Function available from Redis 7 onward. 
+- [Redis functions](https://redis.io/docs/latest/develop/programmability/functions-intro/) section specifically describes the new Redis Functions available from Redis 7 onward. 
+
+Redis Functions are written in Lua and loaded into a Redis Server. They survive a server reboot and provide better way to share code among Redis clients. Redis Functions can be invoked either programmatically or in Redis CLI via [FCALL](https://redis.io/docs/latest/commands/fcall/) or [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) depending on whether the functions perform read/write or write only operations. The use of [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) offers subtle advantages and you *should* always stick to this regulation. If you are already familiar with Lua script, converting existing scripts into Redis Function is only only a couple of steps. 
 
 Code template for Redis function: 
 `myLib.lua`
@@ -517,6 +519,93 @@ redis.register_function{
     flags = { 'no-writes' }
   }
 ```
+
+The first line states that you are using Lua as scripting engine and the library name is mylib. Functions of read/write and read only bear different syntax. You can create a file mixed with read write and read only function as I do. All functions of a library have to loaded in one go. 
+
+`loader.js`
+```
+import { redis } from './redis/redis.js'
+import { readFile } from 'fs/promises';
+
+/*
+   main 
+*/
+await redis.connect();
+
+// Load Lua function from file
+const luaScript = await readFile('./src/myLib.lua', 'utf8');
+console.log(await redis.sendCommand(['FUNCTION', 'LOAD', 'REPLACE', luaScript]), 'loaded');
+
+await redis.close();
+process.exit(0)
+```
+
+Run command to load Redis Functions with: 
+```
+node src/loader.js
+mylib loaded
+```
+
+And check with: 
+```
+> FUNCTION LIST LIBRARYNAME mylib
+1) 1) "library_name"
+   2) "mylib"
+   3) "engine"
+   4) "LUA"
+   5) "functions"
+   6) 1) 1) "name"
+         2) "scanTextChi"
+         3) "description"
+         4) "null"
+         5) "flags"
+         6) 1) "no-writes"
+      2) 1) "name"
+         2) "zSumScore"
+         3) "description"
+         4) "null"
+         5) "flags"
+         6) 1) "no-writes"
+      3) 1) "name"
+         2) "toFix"
+         3) "description"
+         4) "null"
+         5) "flags"
+         6) 1) "no-writes"
+      4) 1) "name"
+         2) "zAddIncr"
+         3) "description"
+         4) "null"
+         5) "flags"
+         6) (empty list or set)
+      5) 1) "name"
+         2) "delall"
+         3) "description"
+         4) "null"
+         5) "flags"
+         6) (empty list or set)
+      6) 1) "name"
+         2) "countKeys"
+         3) "description"
+         4) "null"
+         5) "flags"
+         6) 1) "no-writes"
+      7) 1) "name"
+         2) "ver"
+         3) "description"
+         4) "null"
+         5) "flags"
+         6) 1) "no-writes"
+```
+
+Done!
+
+
+You can use Redis Functions to do:
+1. Trivial things: `VER` and `TOFIX`
+2. Utilities: `COUNTKEYS` and `DELALL` 
+3. Extension to Data Structures: `ZADDINCR`, `ZSUMSCORE`
+4. Proof of concept: SCANTEXTCHI
 
 
 #### IV. 
