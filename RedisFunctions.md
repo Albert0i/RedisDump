@@ -599,24 +599,58 @@ And check with:
 Done!
 
 
-You can use Redis Functions to do:
-1. Really trivial things: `VER` and `TOFIX`
-2. Utility functions: `COUNTKEYS` and `DELALL` 
-3. Extension to underlaying Data Structures: `ZADDINCR`, `ZSUMSCORE`
-4. Proof of concept: `SCANTEXTCHI`
-
-
 #### IV. Example usage
 ##### **Really trivial things**
-
+FCALL_RO VER 0
+FCALL_RO TOFIX 2 123.456 2
+FCALL_RO TOFIX 1 123.456
 
 ##### **Utility functions**
-
+FCALL_RO COUNTKEYS 1 fts:chinese:documents:*
+FCALL_RO COUNTKEYS 0
+FCALL DELALL 1 temp:*
 
 ##### **Extension to underlaying Data Structures**
-
+FCALL ZADDINCR 1 testz a b c d e f 
+FCALL_RO ZSUMSCORE 1 testz
 
 ##### **Proof of concept**
+FCALL_RO SCANTEXTCHI 5 fts:chinese:documents:* key 鄭文公 0 10  id textChi visited
+FCALL_RO SCANTEXTCHI 3 fts:chinese:documents:* key 鄭文公
+
+##### **sendCommand**
+```
+console.log(await redis.sendCommand(['FCALL_RO', 'VER', '0']))
+console.log(await redis.sendCommand(['FCALL_RO', 'COUNTKEYS', '0']))
+console.log(await redis.sendCommand(['FCALL_RO', 'SCANTEXTCHI', '3', 
+    'fts:chinese:documents:*', 'key', '陳文公', 
+    'id', 'key', 'textChi', 'visited']))
+console.log(await redis.sendCommand(['FCALL_RO', 'SCANTEXTCHI', '3', 
+    'fts:chinese:documents:*', 'key', '陳文公'])) 
+```
+
+##### **fCall** and **fCallRo**
+```
+redis.fCall = function(name, keys = [], args = []) {
+    const numkeys = keys.length.toString();
+    return this.sendCommand(['FCALL', name, numkeys, ...keys, ...args]);
+  };
+
+redis.fCallRo = function(name, keys = [], args = []) {
+    const numkeys = keys.length.toString();
+    return this.sendCommand(['FCALL_RO', name, numkeys, ...keys, ...args]);
+  };
+```
+
+```
+console.log(await redis.fCallRo('ver', [], []))
+console.log(await redis.fCallRo('countKeys', [], []))
+console.log(await redis.fCallRo('scanTextChi', 
+    ['fts:chinese:documents:*', 'key', '陳文公'], 
+    ['id', 'key', 'textChi', 'visited']))
+console.log(await redis.fCallRo('scanTextChi', 
+    ['fts:chinese:documents:*', 'key', '陳文公']))
+```
 
 
 #### V. Bibliography
