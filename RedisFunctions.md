@@ -600,10 +600,10 @@ Done!
 
 
 You can use Redis Functions to do:
-1. Trivial things: `VER` and `TOFIX`
-2. Utilities: `COUNTKEYS` and `DELALL` 
-3. Extension to Data Structures: `ZADDINCR`, `ZSUMSCORE`
-4. Proof of concept: SCANTEXTCHI
+1. Really trivial things: `VER` and `TOFIX`
+2. Utility functions: `COUNTKEYS` and `DELALL` 
+3. Extension to underlaying Data Structures: `ZADDINCR`, `ZSUMSCORE`
+4. Proof of concept: `SCANTEXTCHI`
 
 
 #### IV. 
