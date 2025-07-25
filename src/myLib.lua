@@ -69,14 +69,14 @@ redis.register_function{
 redis.register_function('delall', function(KEYS, ARGV)
     -- Required::
     --      KEYS[1] = Prefix pattern (e.g., "user:*")
-    -- Example usage: FCALL DELALL 1 fts:chinese:documents:*
+    -- Example usage: FCALL DELALL 1 temp:*
     -- Output: 1) Number of keys deleted
 
     local pattern = KEYS[1]
     local cursor = "0"
     local deletedCount = 0
 
-    if (pattern == nil ) then
+    if (pattern == nil or pattern == '*') then
         return -1
     end    
     repeat
