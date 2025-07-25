@@ -476,7 +476,7 @@ For the complete documentation flags, please refer to [Script flags](https://red
 
 
 #### III. A Quick Start Guide 
-For those who don't want to crawl through documentations: 
+For those who don't want to crawl through official documentations: 
 
 - [Redis programmability](https://redis.io/docs/latest/develop/programmability/) section outlines the whole picture of Redis programming ecology. 
 - [Scripting with Lua](https://redis.io/docs/latest/develop/programmability/eval-intro/) section describes scripting with Lua script in general.
