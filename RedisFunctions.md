@@ -693,7 +693,7 @@ Sometimes it is handy to find out Hash with field containing some text, like so 
 ```
 SELECT id, textChi, visited 
 FROM documents 
-WHERE textChi LIKE '%鄭文公%'
+WHERE key LIKE '%鄭文公%'
 ```
 
 `scanTextChi` is practically doing a SCAN key and test of condition, is an inefficient way of searching... 
