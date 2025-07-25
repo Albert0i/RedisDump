@@ -606,7 +606,9 @@ You can use Redis Functions to do:
 4. Proof of concept: `SCANTEXTCHI`
 
 
-#### IV. 
+#### IV. Example usage
+
+
 
 
 #### V. Bibliography
