@@ -607,8 +607,16 @@ You can use Redis Functions to do:
 
 
 #### IV. Example usage
+##### **Really trivial things**
 
 
+##### **Utility functions**
+
+
+##### **Extension to underlaying Data Structures*
+
+
+##### **Proof of concept**
 
 
 #### V. Bibliography
