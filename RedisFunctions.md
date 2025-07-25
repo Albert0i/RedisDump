@@ -601,24 +601,33 @@ Done!
 
 #### IV. Example usage
 ##### **Really trivial things**
+```
 FCALL_RO VER 0
 FCALL_RO TOFIX 2 123.456 2
 FCALL_RO TOFIX 1 123.456
+```
 
 ##### **Utility functions**
+```
 FCALL_RO COUNTKEYS 1 fts:chinese:documents:*
 FCALL_RO COUNTKEYS 0
 FCALL DELALL 1 temp:*
+```
 
 ##### **Extension to underlaying Data Structures**
+```
 FCALL ZADDINCR 1 testz a b c d e f 
 FCALL_RO ZSUMSCORE 1 testz
+```
 
 ##### **Proof of concept**
+```
 FCALL_RO SCANTEXTCHI 5 fts:chinese:documents:* key 鄭文公 0 10  id textChi visited
 FCALL_RO SCANTEXTCHI 3 fts:chinese:documents:* key 鄭文公
+```
 
 ##### **sendCommand**
+Call it straightly: 
 ```
 console.log(await redis.sendCommand(['FCALL_RO', 'VER', '0']))
 console.log(await redis.sendCommand(['FCALL_RO', 'COUNTKEYS', '0']))
@@ -630,6 +639,7 @@ console.log(await redis.sendCommand(['FCALL_RO', 'SCANTEXTCHI', '3',
 ```
 
 ##### **fCall** and **fCallRo**
+Or more intuitively, to wrap the sendCommands with: 
 ```
 redis.fCall = function(name, keys = [], args = []) {
     const numkeys = keys.length.toString();
@@ -642,6 +652,7 @@ redis.fCallRo = function(name, keys = [], args = []) {
   };
 ```
 
+Call it accordingly: 
 ```
 console.log(await redis.fCallRo('ver', [], []))
 console.log(await redis.fCallRo('countKeys', [], []))
