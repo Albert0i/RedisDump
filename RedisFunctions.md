@@ -476,9 +476,11 @@ For the complete documentation flags, please refer to [Script flags](https://red
 
 
 #### III. A Quick Start Guide 
-- [Redis programmability](https://redis.io/docs/latest/develop/programmability/)
-- [Scripting with Lua](https://redis.io/docs/latest/develop/programmability/eval-intro/)
-- [Redis functions](https://redis.io/docs/latest/develop/programmability/functions-intro/)
+For those who don't want to crawl through documentations: 
+
+- [Redis programmability](https://redis.io/docs/latest/develop/programmability/) section outlines the whole picture of Redis programming ecology. 
+- [Scripting with Lua](https://redis.io/docs/latest/develop/programmability/eval-intro/) section describes scripting with Lua script in general.
+- [Redis functions](https://redis.io/docs/latest/develop/programmability/functions-intro/) section describes the new Redis Function available from Redis 7 onward. 
 
 Code template for Redis function: 
 `myLib.lua`
