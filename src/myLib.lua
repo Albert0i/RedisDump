@@ -91,7 +91,7 @@ redis.register_function('delall', function(KEYS, ARGV)
     until cursor == "0"
 
     return deletedCount
-end)
+  end )
 
 redis.register_function('zAddIncr', function(KEYS, ARGV) 
     -- Required:
@@ -116,7 +116,7 @@ redis.register_function('zAddIncr', function(KEYS, ARGV)
     end
     
     return n
-end )
+  end )
 
 redis.register_function{
   function_name = 'zSumScore',
@@ -146,7 +146,7 @@ redis.register_function{
       return total
     end,
     flags = { 'no-writes' }
-}
+  }
 
 
 redis.register_function{
@@ -222,4 +222,4 @@ redis.register_function{
       return matched
     end,
     flags = { 'no-writes' }
-}
+  }

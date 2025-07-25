@@ -477,6 +477,8 @@ For the complete documentation flags, please refer to [Script flags](https://red
 
 #### III. 
 ```
+#!lua name=mylib
+
 redis.register_function('myfunc', function(KEYS, ARGV) 
     -- Required: 
     -- Optional: 
@@ -484,11 +486,13 @@ redis.register_function('myfunc', function(KEYS, ARGV)
     -- Output: 
 
     <place your lua script here>
-    
-end )
+
+  end )
 ```
 
 ```
+#!lua name=mylib
+
 redis.register_function{
     function_name = 'myfunc',
     callback = function(KEYS, ARGV)
