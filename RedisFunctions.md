@@ -478,11 +478,11 @@ For the complete documentation flags, please refer to [Script flags](https://red
 #### III. A Quick Start Guide 
 For those who don't want to crawl through official documentations: 
 
-- [Redis programmability](https://redis.io/docs/latest/develop/programmability/) section outlines the whole picture of Redis programming ecology. 
-- [Scripting with Lua](https://redis.io/docs/latest/develop/programmability/eval-intro/) section describes scripting with Lua script in general.
-- [Redis functions](https://redis.io/docs/latest/develop/programmability/functions-intro/) section specifically describes the new Redis Functions available from Redis 7 onward. 
+- [Redis programmability](https://redis.io/docs/latest/develop/programmability/) outlines the whole picture of Redis programming ecology. 
+- [Scripting with Lua](https://redis.io/docs/latest/develop/programmability/eval-intro/) describes scripting with Lua script in general.
+- [Redis functions](https://redis.io/docs/latest/develop/programmability/functions-intro/) describes the new Redis Functions available from Redis 7 onward. 
 
-Redis Functions are written in Lua and loaded into a Redis Server. They survive a server reboot and provide better way to share code among Redis clients. Redis Functions can be invoked either programmatically or in Redis CLI via [FCALL](https://redis.io/docs/latest/commands/fcall/) or [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) depending on whether the functions perform read/write or write only operations. The use of [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) offers subtle advantages and you *should* always stick to this regulation. If you are already familiar with Lua script, converting existing scripts into Redis Function is only only a couple of steps. 
+Redis Functions are written in Lua and loaded into a Redis Server. They survive a server reboot and provide better way to share code among Redis clients. Redis Functions can be invoked either programmatically or in Redis CLI via [FCALL](https://redis.io/docs/latest/commands/fcall/) or [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) depending on whether the functions perform read/write or write only operations. The use of [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) offers subtle advantages and you *should* always stick to this regulation. If you are already familiar with Lua script, converting existing scripts into Redis Function is only a couple of steps. 
 
 Code template for Redis function: 
 `myLib.lua`
