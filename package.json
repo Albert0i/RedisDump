@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dump": "node src/redisdump.js",
+    "load": "node src/loader.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

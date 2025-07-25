@@ -23,7 +23,6 @@ redis.register_function('toFix', function(KEYS, ARGV)
     return string.format("%." .. (digits or 0) .. "f", n)
 end )
 
-
 redis.register_function('countKeys', function(KEYS, ARGV)
     -- Optional: 
     --      KEYS[1] = Prefix pattern (e.g., "user:*"), * if unspecified 
@@ -60,33 +59,6 @@ redis.register_function('countKeys', function(KEYS, ARGV)
     return { totalCount, totalSizeHuman }
 end )
 
-redis.register_function('delall', function(KEYS, ARGV)
-    -- Required::
-    --      KEYS[1] = Prefix pattern (e.g., "user:*")
-    -- Example usage: FCALL DELALL 1 fts:chinese:documents:*
-    -- Output: 1) Number of keys deleted
-
-    local pattern = KEYS[1]
-    local cursor = "0"
-    local deletedCount = 0
-
-    if (pattern == nil ) then
-        return -1
-    end    
-    repeat
-        local result = redis.call("SCAN", cursor, "MATCH", pattern, "COUNT", 1000)
-        cursor = result[1]
-        local keys = result[2]
-
-        for i = 1, #keys do
-            redis.call("UNLINK", keys[i])
-            deletedCount = deletedCount + 1
-        end
-    until cursor == "0"
-
-    return deletedCount
-end)
-
 redis.register_function('zAddIncr', function(KEYS, ARGV) 
     -- Required:
     --      KEYS[1] = Sorted Set key
@@ -112,32 +84,22 @@ redis.register_function('zAddIncr', function(KEYS, ARGV)
     return n
 end )
 
-redis.register_function('zSumScore', function(KEYS, ARGV)
+redis.register_function('zSumScore', function(KEYS, ARGV) 
     -- Required:
     --      KEYS[1] = Sorted Set key
-    -- Optional: 
-    --      KEYS[2] = Segment size (optional, default = 1000)
     -- Example usage: FCALL ZSUMSCORE 1 testz
-    -- Output: 6   
-  
+    -- Output: 6
+
     local key = KEYS[1]
-    --local segmentSize = tonumber(KEYS[2]) or 1000
-    local segmentSize = (KEYS[2] == "0") and 1 or tonumber(KEYS[2]) or 1000
     local total = 0
-    local start = 0
-    local batch
-  
-    repeat
-      batch = redis.call('ZRANGE', key, start, start + segmentSize - 1, 'WITHSCORES')
-      for i = 2, #batch, 2 do
-        total = total + tonumber(batch[i])
-      end
-      start = start + segmentSize
-    until #batch == 0
-  
+    local members = redis.call('ZRANGE', key, 0, -1, 'WITHSCORES')
+
+    for i = 2, #members, 2 do
+    total = total + tonumber(members[i])
+    end
+
     return total
 end )
-
 
 redis.register_function('scanTextChi', function(KEYS, ARGV) 
     --[[
