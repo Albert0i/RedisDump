@@ -485,8 +485,6 @@ For those who don't want to crawl through official documentations:
 Redis Functions are written in Lua and loaded into a Redis Server. They survive a server reboot and provide better way to share code among Redis clients. Redis Functions can be invoked either programmatically or in Redis CLI via [FCALL](https://redis.io/docs/latest/commands/fcall/) or [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) depending on whether the functions perform read/write or write only operations. The use of [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) offers subtle advantages and you *should* always stick to this regulation. If you are already familiar with Lua script, converting existing scripts into Redis Function is only a couple of steps. 
 
 Code template for Redis function: 
-
-`myLib.lua`
 ```
 #!lua name=mylib
 
@@ -502,8 +500,6 @@ redis.register_function('myfunc', function(KEYS, ARGV)
 ```
 
 Code template for Redis function with **no-writes** [flag](https://redis.io/docs/latest/develop/programmability/lua-api/#script_flags):
-
-`myLib.lua`
 ```
 #!lua name=mylib
 
