@@ -689,6 +689,14 @@ With `ZADDINCR` and `ZSUMSCORE`, it is possible to keep track of Cardinality, Me
 ```
 
 ##### **Proof of concept**
+Sometimes it is handy to find out Hash with field containing some text, like so using SQL: 
+```
+SELECT id, textChi, visited 
+FROM documents 
+WHERE textChi LIKE '%鄭文公%'
+```
+
+`scanTextChi` is practically doing a SCAN key and test of condition and thus inefficient. 
 ```
 > FCALL_RO SCANTEXTCHI 5 fts:chinese:documents:* key 鄭文公 0 10 id textChi visited
 1) 1) "11199"
