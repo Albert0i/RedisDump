@@ -5,11 +5,13 @@ import { redis } from './redis/redis.js'
 */
 await redis.connect()
 
-console.log(await redis.fCall('ver', [], []))
-console.log(await redis.fCall('countKeys', [], []))
-console.log(await redis.fCall('scanTextChi', 
+console.log(await redis.fCallRo('ver', [], []))
+console.log(await redis.fCallRo('countKeys', [], []))
+console.log(await redis.fCallRo('scanTextChi', 
     ['fts:chinese:documents:*', 'key', '陳文公'], 
     ['id', 'key', 'textChi', 'visited']))
+console.log(await redis.fCallRo('scanTextChi', 
+    ['fts:chinese:documents:*', 'key', '陳文公']))
 
 await redis.close();
 process.exit(0)

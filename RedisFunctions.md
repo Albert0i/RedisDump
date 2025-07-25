@@ -725,6 +725,8 @@ console.log(await redis.sendCommand(['FCALL_RO', 'SCANTEXTCHI', '3',
     'fts:chinese:documents:*', 'key', '陳文公'])) 
 ```
 
+![alt sendCommand](img/sendCommand.JPG)
+
 ##### **The Wrapper**
 To wrap up with: 
 ```
@@ -749,6 +751,8 @@ console.log(await redis.fCallRo('scanTextChi',
 console.log(await redis.fCallRo('scanTextChi', 
     ['fts:chinese:documents:*', 'key', '陳文公']))
 ```
+
+![alt fCall](img/fCall.JPG)
 
 
 #### V. Bibliography
