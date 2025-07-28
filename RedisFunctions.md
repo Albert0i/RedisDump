@@ -482,40 +482,45 @@ For those who don't want to crawl through official documentations:
 - [Scripting with Lua](https://redis.io/docs/latest/develop/programmability/eval-intro/) describes scripting with Lua script in general.
 - [Redis functions](https://redis.io/docs/latest/develop/programmability/functions-intro/) describes the new Redis Functions available from Redis 7 onward. 
 
-Redis Functions are written in Lua and loaded into a Redis Server. They survive a server reboot and provide better way to share code among Redis clients. Redis Functions can be invoked either programmatically or in Redis CLI via [FCALL](https://redis.io/docs/latest/commands/fcall/) or [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) depending on whether the functions perform read/write or write only operations. The use of [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) offers subtle advantages and you *should* always stick to this regulation. If you are already familiar with Lua script, converting existing scripts into Redis Function is only a couple of steps. 
+Redis Functions are functions written in Lua.
+```
+The syntax for function definition is
+
+	function ::= function funcbody
+	funcbody ::= `(´ [parlist] `)´ block end
+The following syntactic sugar simplifies function definitions:
+
+	stat ::= function funcname funcbody
+	stat ::= local function Name funcbody
+	funcname ::= Name {`.´ Name} [`:´ Name]
+```
+
+They are loaded into a Redis and survive a server reboot and therefore provide better way to share code among Redis clients. Redis Functions can be invoked via [FCALL](https://redis.io/docs/latest/commands/fcall/) or [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) depending on whether the functions perform read/write or write only operations. The use of [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) offers subtle advantages and you *should* always stick to this whenever possible. Converting existing Lua Scripts into Redis Functions only involves a couple of steps. 
 
 Code template for Redis function: 
 ```
 #!lua name=mylib
 
-redis.register_function('myfunc', function(KEYS, ARGV) 
-    -- Required: 
-    -- Optional: 
-    -- Example usage: 
-    -- Output: 
+local function myfunc(KEYS, ARGV)
+  <place your lua script here>
+end
 
-    <place your lua script here>
-
-  end )
+redis.register_function('myfunc', myfunc )
 ```
 
 Code template for Redis function with **no-writes** [flag](https://redis.io/docs/latest/develop/programmability/lua-api/#script_flags):
 ```
 #!lua name=mylib
 
+local function myfunc(KEYS, ARGV)
+  <place your lua script here>
+end
+
 redis.register_function{
-    function_name = 'myfunc',
-    callback = function(KEYS, ARGV)
-      -- Required: 
-      -- Optional: 
-      -- Example usage: 
-      -- Output: 
-
-      <place your lua script here>
-
-    end,
-    flags = { 'no-writes' }
-  }
+  function_name = 'myfunc',
+  callback = myfunc,
+  flags = { 'no-writes' }
+} 
 ```
 
 The first line states that you are using Lua as scripting engine and the library name is mylib. Functions of read/write and read only bear different syntax. You can create a file mixed with read write and read only functions as I do. All functions of a library have to loaded in one go. 

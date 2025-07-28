@@ -80,8 +80,7 @@ local function countKeys(KEYS, ARGV)
     end
   until cursor == "0"
 
-  local totalSizeHuman = string.format("%.2f", totalSize / 1024 / 1024) .. 'M'
-  return { tostring(totalCount), totalSizeHuman }
+  return { tostring(totalCount), toFix( { totalSize / 1024 /1024 } )..'M' }
 end
 
 -- Delete keys of a pattern
