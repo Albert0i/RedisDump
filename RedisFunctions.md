@@ -430,7 +430,7 @@ redis.register_function('my_hlastmodified', my_hlastmodified)
 
 > For example, Redis needs to know that a certain function is read-only before permitting it to execute using [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) on a read-only replica.
 
-> By default, Redis assumes that all functions may perform arbitrary read or write operations. Function Flags make it possible to declare more specific function behavior at the time of registration. Let's see how this works.
+> **By default, Redis assumes that all functions may perform arbitrary read or write operations**. Function Flags make it possible to declare more specific function behavior at the time of registration. Let's see how this works.
 
 > In our previous example, we defined two functions that only read data. We can try executing them using [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) against a read-only replica.
 ```
