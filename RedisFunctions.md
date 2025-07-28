@@ -166,7 +166,7 @@ redis> FUNCTION LOAD "#!lua name=mylib\n"
 
 > The Lua engine compiles and evaluates the library source code when loaded, and expects functions to be registered by calling the `redis.register_function()` API.
 
-> The following snippet demonstrates a simple library registering a single function named knockknock, returning a string reply:
+> The following snippet demonstrates a simple library registering a single function named `knockknock`, returning a string reply:
 ```
 #!lua name=mylib
 redis.register_function(
@@ -175,7 +175,7 @@ redis.register_function(
 )
 ```
 
-> In the example above, we provide two arguments about the function to Lua's redis.register_function() API: its registered name and a callback.
+> In the example above, we provide two arguments about the function to Lua's `redis.register_function()` API: its registered name and a callback.
 
 > We can load our library and use [FCALL](https://redis.io/docs/latest/commands/fcall/) to call the registered function:
 ```
@@ -205,7 +205,7 @@ redis> FCALL knockknock 0
 
 > Our function will call [TIME](https://redis.io/docs/latest/commands/time/) to get the server's clock reading and update the target Hash with the new fields' values and the modification's timestamp. The function we'll implement accepts the following input arguments: the Hash's key name and the field-value pairs to update.
 
-> The Lua API for Redis Functions makes these inputs accessible as the first and second arguments to the function's callback. The callback's first argument is a Lua table populated with all key names inputs to the function. Similarly, the callback's second argument consists of all regular arguments.
+> **The Lua API for Redis Functions makes these inputs accessible as the first and second arguments to the function's callback. The callback's first argument is a Lua table populated with all key names inputs to the function. Similarly, the callback's second argument consists of all regular arguments**.
 
 > The following is a possible implementation for our function and its library registration:
 ```

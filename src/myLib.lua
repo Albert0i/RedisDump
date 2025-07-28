@@ -12,6 +12,40 @@ redis.register_function{
   }  
 
 redis.register_function{
+    function_name = 'libs',
+    callback = function(KEYS, ARGV)
+      -- No parameter is required:
+      -- Example usage: FCALL_RO LIBS 0
+      -- Output:  1) " 1) _G              [Variable]"
+      --          2) " 2) _VERSION        [Variable]"
+      --          3) " 3) assert          [Function]"
+      --          4) " 4) bit             [Variable]"
+      --          5) " 5) cjson           [Variable]"
+      --          6) " 6) cmsgpack        [Variable]"      
+
+      local libs = {}
+      for k, v in pairs(_G) do
+        local vtype = type(v)
+        local category = (vtype == "function") and "Function" or "Variable"
+        table.insert(libs, { name = k, category = category })
+      end
+      
+      -- Sort by name
+      table.sort(libs, function(a, b) return a.name < b.name end)
+      
+      -- Build formatted output
+      local result = {}
+      for i, item in ipairs(libs) do
+        table.insert(result, string.format("%2d) %-15s [%s]", i, item.name, item.category))
+      end
+      
+      -- Return as a multi-line array
+      return result
+    end,
+    flags = { 'no-writes' }
+  }  
+
+redis.register_function{
     function_name = 'toFix',
     callback = function(KEYS, ARGV)
       -- Required:
