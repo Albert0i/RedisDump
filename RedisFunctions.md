@@ -481,7 +481,7 @@ For those who don't want to crawl through official documentations:
 
 - [Redis programmability](https://redis.io/docs/latest/develop/programmability/) outlines the whole landscape of Redis programming ecology. 
 - [Scripting with Lua](https://redis.io/docs/latest/develop/programmability/eval-intro/) describes Lua Scripting in Redis in general.
-- [Redis functions](https://redis.io/docs/latest/develop/programmability/functions-intro/) depicts the new Redis Functions in a nutshell. 
+- [Redis functions](https://redis.io/docs/latest/develop/programmability/functions-intro/) describes the new Redis Functions features. 
 
 Redis Functions are functions written in Lua. The syntax for function definition is: 
 ```
@@ -496,7 +496,7 @@ The following syntactic sugar simplifies function definitions:
 	funcname ::= Name {`.´ Name} [`:´ Name]
 ```
 
-They are loaded into a Redis and survive a server reboot and therefore provide better way to share code among Redis clients. Redis Functions can be invoked via [FCALL](https://redis.io/docs/latest/commands/fcall/) or [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) depending on whether the functions perform read/write or read only operations. The use of [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) offers subtle advantages and you *should* always stick to this whenever possible. Converting existing Lua Scripts into Redis Functions only involves a couple of steps. 
+They are loaded into Redis and survive a server reboot and therefore provide better way to share code among Redis clients. Redis Functions can be invoked via [FCALL](https://redis.io/docs/latest/commands/fcall/) or [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) depending on whether the functions perform read/write or read only operations. The use of [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) offers subtle advantages and you *should* always stick to it whenever possible. If you are already familiar Lua Script, converting existing scripts into Redis Functions is only a couple of steps. 
 
 Code template for Redis function: 
 ```
@@ -524,7 +524,7 @@ redis.register_function{
 } 
 ```
 
-The first line states that you are using Lua as scripting engine and name of the library. Functions of read/write and read only bear different syntax. You can create a file mixed with read write and read only functions. All functions of a library have to loaded in one go. 
+The first line states that we are using Lua as scripting engine and name of the library. I *deliberately* opt `KEYS` for keys arguments and `ARGV` for regular arguments to comply the naming convention in Lua Script. Functions of read/write and read only bear different syntax. You can create a file mixed with read write and read only functions. All functions of a library have to loaded in one go. 
 
 `loader.js`
 ```
@@ -613,13 +613,13 @@ Done!
 
 #### IV. Example usage
 ##### **Really trivial things**
-To get the Redis Version with: 
+To get the Redis Version: 
 ```
 > FCALL_RO VER 0
 "8.0.2"
 ```
 
-To round up a number to a certain of decimal place: 
+To round up a number to a number of decimal place: 
 ```
 > FCALL_RO TOFIX 2 123.456 2
 "123.46"
@@ -649,8 +649,13 @@ Sometimes it is necessary to remove keys of a pattern:
 12
 ```
 
+You can do something like: 
+```
+DELETE FROM users; 
+```
+
 ##### **Extension to underlaying Data Structures**
-Set, being the best candidate for data deduplication, sometimes it is convenient to keep the their number of  occurrence. Every time a member is added to Sorted Set, it's score is increased by one: 
+Set, being the best candidate for data deduplication, sometimes it is convenient to keep the their number of  occurrence also. Every time a member is added to Sorted Set, it's score is increased by one: 
 ```
 > FCALL ZADDINCR 1 testz a b c d e f 
 (integer) 6
@@ -674,7 +679,7 @@ Set, being the best candidate for data deduplication, sometimes it is convenient
 (integer) 21
 ```
 
-With `ZADDINCR` and `ZSUMSCORE`, it is possible to keep track of Cardinality, Membership and Frequency in a Sorted Set. 
+With `ZADDINCR` and `ZSUMSCORE`, it is possible to keep track of **Cardinality**, **Membership** and **Frequency** in a single3 Sorted Set. 
 ```
 > ZCARD testz
 (integer) 6
@@ -709,7 +714,7 @@ WHERE textChi LIKE '%鄭文公%'
 limit 10 OFFSET 0;
 ```
 
-`scanTextChi` is practically doing a SCAN key and test of condition, is an inefficient way of searching... 
+`scanTextChi` is practically doing a `SCAN` key and test of condition, it is an inefficient way of searching... 
 ```
 > FCALL_RO SCANTEXTCHI 5 fts:chinese:documents:* key 鄭文公 0 10 id textChi visited
 1) 1) "11199"
