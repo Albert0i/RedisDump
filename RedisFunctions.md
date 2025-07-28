@@ -1,5 +1,5 @@
 ### [Redis Functions](https://redis.io/docs/latest/develop/programmability/functions-intro/)
-
+> "And it is not a case of habit, feelings do not become blunted by dint of habit when it’s a simple matter of judgement; one just has to abandon one’s misconceptions."<br />The Castle by Franz Kafka
 
 #### Prologue 
 
@@ -109,13 +109,13 @@ How to use the built-in Lua debugger
 
 ##### **Prologue (or, what's wrong with Eval Scripts?)**
 
-Prior versions of Redis made scripting available only via the [EVAL](https://redis.io/docs/latest/commands/eval/) command, which allows a Lua script to be sent for execution by the server. The core use cases for [Eval Scripts](https://redis.io/docs/latest/develop/programmability/eval-intro/) is executing part of your application logic inside Redis, efficiently and atomically. Such script can perform conditional updates across multiple keys, possibly combining several different data types.
+> Prior versions of Redis made scripting available only via the [EVAL](https://redis.io/docs/latest/commands/eval/) command, which allows a Lua script to be sent for execution by the server. The core use cases for [Eval Scripts](https://redis.io/docs/latest/develop/programmability/eval-intro/) is executing part of your application logic inside Redis, efficiently and atomically. Such script can perform conditional updates across multiple keys, possibly combining several different data types.
 
-Using [EVAL](https://redis.io/docs/latest/commands/eval/) requires that the application sends the entire script for execution every time. Because this results in network and script compilation overheads, Redis provides an optimization in the form of the [EVALSHA](https://redis.io/docs/latest/commands/evalsha/) command. By first calling [SCRIPT LOAD](https://redis.io/docs/latest/commands/script-load/) to obtain the script's SHA1, the application can invoke it repeatedly afterward with its digest alone.
+> Using [EVAL](https://redis.io/docs/latest/commands/eval/) requires that the application sends the entire script for execution every time. Because this results in network and script compilation overheads, Redis provides an optimization in the form of the [EVALSHA](https://redis.io/docs/latest/commands/evalsha/) command. By first calling [SCRIPT LOAD](https://redis.io/docs/latest/commands/script-load/) to obtain the script's SHA1, the application can invoke it repeatedly afterward with its digest alone.
 
-By design, Redis only caches the loaded scripts. That means that the script cache can become lost at any time, such as after calling [SCRIPT FLUSH](https://redis.io/docs/latest/commands/script-flush/), after restarting the server, or when failing over to a replica. The application is responsible for reloading scripts during runtime if any are missing. The underlying assumption is that scripts are a part of the application and not maintained by the Redis server.
+> By design, Redis only caches the loaded scripts. That means that the script cache can become lost at any time, such as after calling [SCRIPT FLUSH](https://redis.io/docs/latest/commands/script-flush/), after restarting the server, or when failing over to a replica. The application is responsible for reloading scripts during runtime if any are missing. The underlying assumption is that scripts are a part of the application and not maintained by the Redis server.
 
-This approach suits many light-weight scripting use cases, but introduces several difficulties once an application becomes complex and relies more heavily on scripting, namely:
+> This approach suits many light-weight scripting use cases, but introduces several difficulties once an application becomes complex and relies more heavily on scripting, namely:
 
 1. All client application instances must maintain a copy of all scripts. That means having some mechanism that applies script updates to all of the application's instances.
 2. Calling cached scripts within the context of a [transaction](https://redis.io/docs/latest/develop/using-commands/transactions/) increases the probability of the transaction failing because of a missing script. Being more likely to fail makes using cached scripts as building blocks of workflows less attractive.
@@ -162,11 +162,11 @@ redis> FUNCTION LOAD "#!lua name=mylib\n"
 (error) ERR No functions registered
 ```
 
-The error is expected, as there are no functions in the loaded library. Every library needs to include at least one registered function to load successfully. A registered function is named and acts as an entry point to the library. When the target execution engine handles the [FUNCTION LOAD](https://redis.io/docs/latest/commands/function-load/) command, it registers the library's functions.
+> The error is expected, as there are no functions in the loaded library. Every library needs to include at least one registered function to load successfully. A registered function is named and acts as an entry point to the library. When the target execution engine handles the [FUNCTION LOAD](https://redis.io/docs/latest/commands/function-load/) command, it registers the library's functions.
 
-The Lua engine compiles and evaluates the library source code when loaded, and expects functions to be registered by calling the `redis.register_function()` API.
+> The Lua engine compiles and evaluates the library source code when loaded, and expects functions to be registered by calling the `redis.register_function()` API.
 
-The following snippet demonstrates a simple library registering a single function named knockknock, returning a string reply:
+> The following snippet demonstrates a simple library registering a single function named knockknock, returning a string reply:
 ```
 #!lua name=mylib
 redis.register_function(
@@ -175,9 +175,9 @@ redis.register_function(
 )
 ```
 
-In the example above, we provide two arguments about the function to Lua's redis.register_function() API: its registered name and a callback.
+> In the example above, we provide two arguments about the function to Lua's redis.register_function() API: its registered name and a callback.
 
-We can load our library and use [FCALL](https://redis.io/docs/latest/commands/fcall/) to call the registered function:
+> We can load our library and use [FCALL](https://redis.io/docs/latest/commands/fcall/) to call the registered function:
 ```
 redis> FUNCTION LOAD "#!lua name=mylib\nredis.register_function('knockknock', function() return 'Who\\'s there?' end)"
 mylib
@@ -185,11 +185,11 @@ redis> FCALL knockknock 0
 "Who's there?"
 ```
 
-Notice that the [FUNCTION LOAD](https://redis.io/docs/latest/commands/function-load/) command returns the name of the loaded library, this name can later be used [FUNCTION LIST](https://redis.io/docs/latest/commands/function-list/) and [FUNCTION DELETE](https://redis.io/docs/latest/commands/function-delete/).
+> Notice that the [FUNCTION LOAD](https://redis.io/docs/latest/commands/function-load/) command returns the name of the loaded library, this name can later be used [FUNCTION LIST](https://redis.io/docs/latest/commands/function-list/) and [FUNCTION DELETE](https://redis.io/docs/latest/commands/function-delete/).
 
-We've provided [FCALL](https://redis.io/docs/latest/commands/fcall/) with two arguments: the function's registered name and the numeric value 0. This numeric value indicates the number of key names that follow it (the same way [EVAL](https://redis.io/docs/latest/commands/eval/) and [EVALSHA](https://redis.io/docs/latest/commands/evalsha/) work).
+> We've provided [FCALL](https://redis.io/docs/latest/commands/fcall/) with two arguments: the function's registered name and the numeric value 0. This numeric value indicates the number of key names that follow it (the same way [EVAL](https://redis.io/docs/latest/commands/eval/) and [EVALSHA](https://redis.io/docs/latest/commands/evalsha/) work).
 
-We'll explain immediately how key names and additional arguments are available to the function. As this simple example doesn't involve keys, we simply use 0 for now.
+> We'll explain immediately how key names and additional arguments are available to the function. As this simple example doesn't involve keys, we simply use 0 for now.
 
 ##### **Input keys and regular arguments**
 
@@ -207,7 +207,7 @@ We'll explain immediately how key names and additional arguments are available t
 
 > The Lua API for Redis Functions makes these inputs accessible as the first and second arguments to the function's callback. The callback's first argument is a Lua table populated with all key names inputs to the function. Similarly, the callback's second argument consists of all regular arguments.
 
-The following is a possible implementation for our function and its library registration:
+> The following is a possible implementation for our function and its library registration:
 ```
 #!lua name=mylib
 
@@ -220,7 +220,7 @@ end
 redis.register_function('my_hset', my_hset)
 ```
 
-If we create a new file named *mylib.lua* that consists of the library's definition, we can load it like so (without stripping the source code of helpful whitespaces):
+> If we create a new file named *mylib.lua* that consists of the library's definition, we can load it like so (without stripping the source code of helpful whitespaces):
 ```
 $ cat mylib.lua | redis-cli -x FUNCTION LOAD REPLACE
 ```
@@ -329,7 +329,7 @@ redis> FUNCTION LIST
 
 ##### **Reusing code in the library**
 
-On top of bundling functions together into database-managed software artifacts, libraries also facilitate code sharing. We can add to our library an error handling helper function called from other functions. The helper function check_keys() verifies that the input keys table has a single key. Upon success it returns nil, otherwise it returns an [error reply](https://redis.io/docs/latest/develop/programmability/lua-api/#redis.error_reply).
+> On top of bundling functions together into database-managed software artifacts, libraries also facilitate code sharing. We can add to our library an error handling helper function called from other functions. The helper function check_keys() verifies that the input keys table has a single key. Upon success it returns nil, otherwise it returns an [error reply](https://redis.io/docs/latest/develop/programmability/lua-api/#redis.error_reply).
 
 > The updated library's source code would be:
 ```
@@ -472,7 +472,7 @@ redis> FCALL_RO my_hlastmodified 1 myhash
 "1640772721"
 ```
 
-For the complete documentation flags, please refer to [Script flags](https://redis.io/docs/latest/develop/programmability/lua-api/#script_flags).
+> For the complete documentation flags, please refer to [Script flags](https://redis.io/docs/latest/develop/programmability/lua-api/#script_flags).
 
 
 #### III. A Quick Start Guide 
@@ -693,7 +693,8 @@ Sometimes it is handy to find out Hash with field containing some text, like so 
 ```
 SELECT id, textChi, visited 
 FROM documents 
-WHERE key LIKE '%鄭文公%'
+WHERE textChi LIKE '%鄭文公%'
+limit 10 OFFSET 0;
 ```
 
 `scanTextChi` is practically doing a SCAN key and test of condition, is an inefficient way of searching... 
@@ -845,4 +846,4 @@ FUNCTION <subcommand> [<arg> [value] [opt] ...]. Subcommands are:
 #### Epilogue 
 
 
-### EOF (2025/07/31)
+### EOF (2025/08/01)
