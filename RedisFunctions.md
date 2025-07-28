@@ -1,6 +1,7 @@
 ### [Redis Functions](https://redis.io/docs/latest/develop/programmability/functions-intro/)
 > "And it is not a case of habit, feelings do not become blunted by dint of habit when it’s a simple matter of judgement; one just has to abandon one’s misconceptions."<br />The Castle by Franz Kafka
 
+
 #### Prologue 
 
 
@@ -478,24 +479,24 @@ redis> FCALL_RO my_hlastmodified 1 myhash
 #### III. A Quick Start Guide 
 For those who don't want to crawl through official documentations: 
 
-- [Redis programmability](https://redis.io/docs/latest/develop/programmability/) outlines the whole picture of Redis programming ecology. 
-- [Scripting with Lua](https://redis.io/docs/latest/develop/programmability/eval-intro/) describes scripting with Lua script in general.
-- [Redis functions](https://redis.io/docs/latest/develop/programmability/functions-intro/) describes the new Redis Functions available from Redis 7 onward. 
+- [Redis programmability](https://redis.io/docs/latest/develop/programmability/) outlines the whole landscape of Redis programming ecology. 
+- [Scripting with Lua](https://redis.io/docs/latest/develop/programmability/eval-intro/) describes Lua Scripting in Redis in general.
+- [Redis functions](https://redis.io/docs/latest/develop/programmability/functions-intro/) depicts the new Redis Functions in a nutshell. 
 
-Redis Functions are functions written in Lua.
+Redis Functions are functions written in Lua. The syntax for function definition is: 
 ```
-The syntax for function definition is
-
 	function ::= function funcbody
 	funcbody ::= `(´ [parlist] `)´ block end
-The following syntactic sugar simplifies function definitions:
+```
 
+The following syntactic sugar simplifies function definitions:
+```
 	stat ::= function funcname funcbody
 	stat ::= local function Name funcbody
 	funcname ::= Name {`.´ Name} [`:´ Name]
 ```
 
-They are loaded into a Redis and survive a server reboot and therefore provide better way to share code among Redis clients. Redis Functions can be invoked via [FCALL](https://redis.io/docs/latest/commands/fcall/) or [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) depending on whether the functions perform read/write or write only operations. The use of [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) offers subtle advantages and you *should* always stick to this whenever possible. Converting existing Lua Scripts into Redis Functions only involves a couple of steps. 
+They are loaded into a Redis and survive a server reboot and therefore provide better way to share code among Redis clients. Redis Functions can be invoked via [FCALL](https://redis.io/docs/latest/commands/fcall/) or [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) depending on whether the functions perform read/write or read only operations. The use of [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) offers subtle advantages and you *should* always stick to this whenever possible. Converting existing Lua Scripts into Redis Functions only involves a couple of steps. 
 
 Code template for Redis function: 
 ```
@@ -523,7 +524,7 @@ redis.register_function{
 } 
 ```
 
-The first line states that you are using Lua as scripting engine and the library name is mylib. Functions of read/write and read only bear different syntax. You can create a file mixed with read write and read only functions as I do. All functions of a library have to loaded in one go. 
+The first line states that you are using Lua as scripting engine and name of the library. Functions of read/write and read only bear different syntax. You can create a file mixed with read write and read only functions. All functions of a library have to loaded in one go. 
 
 `loader.js`
 ```
@@ -558,43 +559,49 @@ And check with:
    4) "LUA"
    5) "functions"
    6) 1) 1) "name"
-         2) "scanTextChi"
-         3) "description"
-         4) "null"
-         5) "flags"
-         6) 1) "no-writes"
-      2) 1) "name"
-         2) "zSumScore"
-         3) "description"
-         4) "null"
-         5) "flags"
-         6) 1) "no-writes"
-      3) 1) "name"
-         2) "toFix"
-         3) "description"
-         4) "null"
-         5) "flags"
-         6) 1) "no-writes"
-      4) 1) "name"
-         2) "zAddIncr"
-         3) "description"
-         4) "null"
-         5) "flags"
-         6) (empty list or set)
-      5) 1) "name"
-         2) "delall"
-         3) "description"
-         4) "null"
-         5) "flags"
-         6) (empty list or set)
-      6) 1) "name"
          2) "countKeys"
          3) "description"
          4) "null"
          5) "flags"
          6) 1) "no-writes"
-      7) 1) "name"
+      2) 1) "name"
+         2) "delall"
+         3) "description"
+         4) "null"
+         5) "flags"
+         6) (empty list or set)
+      3) 1) "name"
+         2) "zAddIncr"
+         3) "description"
+         4) "null"
+         5) "flags"
+         6) (empty list or set)
+      4) 1) "name"
          2) "ver"
+         3) "description"
+         4) "null"
+         5) "flags"
+         6) 1) "no-writes"
+      5) 1) "name"
+         2) "scanTextChi"
+         3) "description"
+         4) "null"
+         5) "flags"
+         6) 1) "no-writes"
+      6) 1) "name"
+         2) "libs"
+         3) "description"
+         4) "null"
+         5) "flags"
+         6) 1) "no-writes"
+      7) 1) "name"
+         2) "toFix"
+         3) "description"
+         4) "null"
+         5) "flags"
+         6) 1) "no-writes"
+      8) 1) "name"
+         2) "zSumScore"
          3) "description"
          4) "null"
          5) "flags"
