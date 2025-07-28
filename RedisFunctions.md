@@ -856,7 +856,6 @@ FUNCTION <subcommand> [<arg> [value] [opt] ...]. Subcommands are:
 
 
 #### Epilogue 
-> "No sooner was it said than it was forgotten forever, but next time people would fall for their tricks again." <br />The Castle by Franz Kafka
 
 
 ### EOF (2025/08/01)
