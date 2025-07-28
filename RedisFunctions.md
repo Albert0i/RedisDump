@@ -120,7 +120,7 @@ How to use the built-in Lua debugger
 1. All client application instances must maintain a copy of all scripts. That means having some mechanism that applies script updates to all of the application's instances.
 2. Calling cached scripts within the context of a [transaction](https://redis.io/docs/latest/develop/using-commands/transactions/) increases the probability of the transaction failing because of a missing script. Being more likely to fail makes using cached scripts as building blocks of workflows less attractive.
 3. SHA1 digests are meaningless, making debugging the system extremely hard (e.g., in a [MONITOR](https://redis.io/docs/latest/commands/monitor/) session).
-4. When used naively, [EVAL](https://redis.io/docs/latest/commands/eval/) promotes an anti-pattern in which scripts the client application renders verbatim scripts instead of responsibly using the [KEYS and ARGV Lua APIs](https://redis.io/docs/latest/develop/programmability/lua-api/#runtime-globals).
+4. When used naively, [EVAL](https://redis.io/docs/latest/commands/eval/) promotes an [anti-pattern](https://en.wikipedia.org/wiki/Anti-pattern) in which scripts the client application renders verbatim scripts instead of responsibly using the [KEYS and ARGV Lua APIs](https://redis.io/docs/latest/develop/programmability/lua-api/#runtime-globals).
 5. Because they are ephemeral, a script can't call another script. This makes sharing and reusing code between scripts nearly impossible, short of client-side preprocessing (see the first point).
 
 > To address these needs while avoiding breaking changes to already-established and well-liked ephemeral scripts, Redis v7.0 introduces Redis Functions.
