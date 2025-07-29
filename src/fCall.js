@@ -8,10 +8,10 @@ await redis.connect()
 console.log(await redis.fCallRo('ver', [], []))
 console.log(await redis.fCallRo('countKeys', [], []))
 console.log(await redis.fCallRo('scanTextChi', 
-    ['fts:chinese:documents:*', 'key', '陳文公'], 
-    ['id', 'key', 'textChi', 'visited']))
+    ['fts:chinese:documents:*', 'key', '鄭文公'], 
+    ['id', 'textChi', 'visited']))
 console.log(await redis.fCallRo('scanTextChi', 
-    ['fts:chinese:documents:*', 'key', '陳文公']))
+    ['fts:chinese:documents:*', 'key', '鄭文公']))
 
 await redis.close();
 process.exit(0)

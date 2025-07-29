@@ -38,17 +38,6 @@ local function libs(KEYS, ARGV)
   return result
 end 
 
-local function resp3(KEYS, ARGV)
-  local result = {
-    username = "iong_dev",
-    status = "active",
-    score = 98
-  }
-
-  redis.setresp(3)
-  return result  -- returned as a RESP3 map to compatible clients
-end
-
 -- Round up to number of decimals
 -- Required:
 --      KEYS[1] = Number to be rounded
@@ -172,6 +161,43 @@ local function zSumScore(KEYS, ARGV)
   return total
 end
 
+--
+-- Experimental only !!!
+-- 
+local function debugPrint(message)
+  redis.log(redis.LOG_WARNING, 'DEBUG > ' .. (message or ''))
+end
+
+local function table_to_string(tbl)
+  local parts = {}
+  for k, v in pairs(tbl) do
+    local key = tostring(k)
+    local val = tostring(v)
+
+    if (val == "") then 
+      val = "nil"
+    end
+    table.insert(parts, key .. " = '" .. val .. "'")
+  end
+  return "{" .. table.concat(parts, ", ") .. "}"
+end
+
+-- Builds a key-value table from two equally sized input tables
+local function array_to_map(field_name_table, field_value_table)
+  local result = {}
+
+  debugPrint()
+  debugPrint("field_name_table: " .. table_to_string(field_name_table))
+  debugPrint("field_value_table: " .. table_to_string(field_value_table))
+
+  for i = 1, #field_name_table do
+    result[field_name_table[i]] = field_value_table[i]
+  end
+
+  debugPrint("result_table: " .. table_to_string(result))
+  return result
+end
+
 --[[
   Lua script to scan Redis for hashes matching "document:*"
   and return HASH objects.
@@ -193,6 +219,10 @@ end
   Output: 
 --]]
 local function scanTextChi(KEYS, ARGV)
+  local keyPrefix = KEYS[1] or '*'
+  local fieldName = KEYS[2]
+  local containedValue = KEYS[3]
+  local returnedFieldNames = {}
   local offset = tonumber(KEYS[4]) or 0
   local limit = tonumber(KEYS[5]) or 10
 
@@ -200,46 +230,63 @@ local function scanTextChi(KEYS, ARGV)
   local matched = {}  -- result to be returned 
   local index = 1     -- index to place retrieved value
 
-  repeat
-  local scan = redis.call("SCAN", cursor, "MATCH", KEYS[1], "COUNT", 100)
-  -- "scan" returns [cursor, keys] 
-  cursor = scan[1]
-  local keys = scan[2]
+  redis.setresp(3)
+  return { status = "ok", count = 10 }
 
-  for _, key in ipairs(keys) do
-      -- Get the field value to inspect 
-      local text = redis.call("HGET", key, KEYS[2])
-      
-      -- If found and contains the value
-      if (text) and (string.find(text, KEYS[3])) then 
-      -- Skip offset 
-      if offset > 0 then 
-          offset = offset - 1
-      else 
-          -- Take limit 
-          if limit > 0 then 
-          -- If no field names specified to return 
-          if (ARGV[1] or "*") == "*" then
-              matched[index] = redis.call("HGETALL", key)
-          else        
-              matched[index] = redis.call("HMGET", key, unpack(ARGV))
-          end
+  -- repeat
+  --   local scan = redis.call("SCAN", cursor, "MATCH", keyPrefix, "COUNT", 100)
+  --   -- "scan" returns [cursor, keys] 
+  --   cursor = scan[1]
+  --   local keys = scan[2]
 
-          -- Increase the index 
-          index = index + 1
-          -- Decrease the limit
-          limit = limit - 1
-          else 
-          -- Readhed limit before scan completed
-          return matched
-          end 
-      end 
-      end 
-  end
-  until (cursor == "0") -- Loop until no more keys found
+  --   for _, key in ipairs(keys) do
+  --       -- Get the field value to inspect 
+  --       -- local text = redis.call("HGET", key, KEYS[2])
+  --       local hash = {}
+  --       -- If no field names specified to return 
+  --       if (ARGV[1] or "*") == "*" then
+  --         --hash = redis.call("HGETALL", key)
+  --         returnedFieldNames = redis.call('HKEYS', key)
+  --         --hash = redis.call("HMGET", key, unpack(redis.call('HKEYS', key)))
+  --       else 
+  --         returnedFieldNames = ARGV
+  --         --hash = redis.call("HMGET", key, fieldName, unpack(ARGV))
+  --       end
+  --       hash = redis.call("HMGET", key, unpack(returnedFieldNames))
 
-  -- Scan completed
-  return matched
+  --       local hashMap = array_to_map(returnedFieldNames, hash)
+        
+  --       debugPrint('hashMap = ' .. table_to_string(hashMap))
+        
+  --       redis.setresp(3)
+  --       return { key = "value" }        
+
+  --       -- -- If found and contains the value
+  --       -- if ( hash['map'][fieldName] ) and 
+  --       --    ( string.find(hash['map'][fieldName], containedValue )) then 
+  --       --     -- Skip offset 
+  --       --     if offset > 0 then 
+  --       --       offset = offset - 1  
+  --       --     else 
+  --       --     -- Take limit 
+  --       --     if limit > 0 then 
+  --       --       matched[index] = hash 
+
+  --       --       -- Increase the index 
+  --       --       index = index + 1
+  --       --       -- Decrease the limit
+  --       --       limit = limit - 1
+  --       --     else 
+  --       --       -- Readhed limit before scan completed
+  --       --       return matched
+  --       --     end    
+  --       --   end
+  --       -- end 
+  --   end
+  -- until (cursor == "0") -- Loop until no more keys found
+
+  -- -- Scan completed
+  -- return matched
 end
 
 --
@@ -282,11 +329,5 @@ redis.register_function{
 redis.register_function{
   function_name = 'scanTextChi',
   callback = scanTextChi,
-    flags = { 'no-writes' }
-}
-
-redis.register_function{
-  function_name = 'resp3',
-  callback = resp3,
     flags = { 'no-writes' }
 }
