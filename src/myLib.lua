@@ -252,6 +252,12 @@ redis.register_function{
 }
 
 redis.register_function{
+  function_name = 'resp3',
+  callback = resp3,
+    flags = { 'no-writes' }
+}
+
+redis.register_function{
   function_name = 'toFix',
   callback = toFix,
   flags = { 'no-writes' }
@@ -276,11 +282,5 @@ redis.register_function{
 redis.register_function{
   function_name = 'scanTextChi',
   callback = scanTextChi,
-    flags = { 'no-writes' }
-}
-
-redis.register_function{
-  function_name = 'resp3',
-  callback = resp3,
     flags = { 'no-writes' }
 }
