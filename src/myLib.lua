@@ -39,14 +39,8 @@ local function libs(KEYS, ARGV)
 end 
 
 local function resp3(KEYS, ARGV)
-  local result = {
-    username = "iong_dev",
-    status = "active",
-    score = 98
-  }
-
   redis.setresp(3)
-  return result  -- returned as a RESP3 map to compatible clients
+  return { name = "iong_dev", status = "active", score = 98 }  
 end
 
 -- Round up to number of decimals
