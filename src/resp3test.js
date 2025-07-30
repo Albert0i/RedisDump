@@ -26,3 +26,9 @@ console.log('The result is',
 
 await redis.close();
 process.exit(0)
+
+/*
+HELLO 3
+EVAL 'redis.setresp(3) return { name = "iong_dev", status = "active", score = 98 }' 0 
+
+*/
