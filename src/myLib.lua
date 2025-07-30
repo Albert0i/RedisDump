@@ -243,7 +243,7 @@ local function scanTextChi(KEYS, ARGV)
 
   repeat
   local scan = redis.call("SCAN", cursor, "MATCH", keyPrefix, "COUNT", 100)
-  -- "scan" returns [cursor, keys] 
+  -- "scan" returns [ cursor, keys ]
   cursor = scan[1]
   local keys = scan[2]
 
