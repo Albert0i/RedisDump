@@ -343,6 +343,7 @@ Hit Enter — this opens the folder directly in File Explorer.
 《紫釵記》
 
 1. [The New Way to Write .NET Apps (and It's Awesome)](https://youtu.be/1Yv6rihgTM0)
-
-2. [Download .NET 10.0](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
+2. [Run C# Scripts With dotnet run app.cs (No Project Files Needed)](https://www.milanjovanovic.tech/blog/run-csharp-scripts-with-dotnet-run-app-no-project-files-needed)
+3. [Milan Jovanovic's Blog](https://www.milanjovanovic.tech/blog)
+4. [Download .NET 10.0](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
 
