@@ -77,6 +77,27 @@ local function timestamp(KEYS, ARGV)
   return formatTS({ timestampPart + (microsecondsPart / 1000000), offset }) 
 end
 
+-- Random
+-- Optional:
+--      KEYS[1] = Positive value will return integer 1 ~ value; 
+--                otherwise returns 0 ~ 1 float point number. 
+-- Example usage: FCALL_RO TIMESTAMP 0
+--                FCALL_RO TIMESTAMP 1 8
+-- Output: "2025-08-01 14:49:37.686"
+local function random(KEYS, ARGV)
+  local val = tonumber(KEYS[1])
+
+  -- Seed using high-entropy time stamp
+  local t = redis.call('TIME')
+  math.randomseed(t[1] * 1000000 + t[2])
+
+  if val ~= nil and val > 1 then
+      return tostring(math.random(1, math.floor(val)))
+  else
+      return tostring(math.random())
+  end
+end
+
 -- Count number of keys and size of a pattern
 -- Optional:
 --      KEYS[1] = Prefix pattern (e.g., "user:*"), * if unspecified
@@ -363,6 +384,12 @@ redis.register_function{
 redis.register_function{
   function_name = 'timestamp',
   callback = timestamp,
+  flags = { 'no-writes' }
+}
+
+redis.register_function{
+  function_name = 'random',
+  callback = random,
   flags = { 'no-writes' }
 }
 
