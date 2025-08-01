@@ -64,6 +64,60 @@ local function toFix(KEYS, ARGV)
   return string.format("%." .. digits .. "f", n)
 end
 
+-- Format linux timestamp to YYYY-MM-DD HH:MM:SS format
+-- Required:
+--      KEYS[1] = Timestamp to be formatted
+-- Optional:
+--      KEYS[2] = Timezone, +8 if unspecified
+-- Example usage: FCALL_RO FORMATTS 1 1754022140.809510
+--                FCALL_RO FORMATTS 2 1754022140.809510 8
+-- Output: "2025-08-01 12:22:20.809"
+local function formatTS(KEYS, ARGV)
+  local offset = tonumber(KEYS[2]) or 8 -- UTC+8
+  local ts = tonumber(KEYS[1])
+  if not ts then return "Invalid timestamp" end
+
+  ts = ts + (offset * 3600)
+
+  -- Split into whole seconds and milliseconds
+  local secFloor = math.floor(ts)
+  local millis = math.floor((ts - secFloor) * 1000)
+
+  -- Days in each month (non-leap year)
+  local monthDays = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}
+
+  local function isLeap(year)
+    return (year % 4 == 0 and year % 100 ~= 0) or (year % 400 == 0)
+  end
+
+  local minute = math.floor(secFloor / 60) % 60
+  local hour = math.floor(secFloor / 3600) % 24
+  local days = math.floor(secFloor / 86400)
+
+  local year = 1970
+  while true do
+    local leap = isLeap(year)
+    local daysInYear = leap and 366 or 365
+    if days < daysInYear then break end
+    days = days - daysInYear
+    year = year + 1
+  end
+
+  local month = 1
+  while true do
+    local dim = monthDays[month]
+    if month == 2 and isLeap(year) then dim = 29 end
+    if days < dim then break end
+    days = days - dim
+    month = month + 1
+  end
+
+  local day = days + 1
+  local sec = secFloor % 60
+
+  return string.format("%04d-%02d-%02d %02d:%02d:%02d.%03d", year, month, day, hour, minute, sec, millis)
+end
+
 
 -- Count number of keys and size of a pattern
 -- Optional:
@@ -309,6 +363,12 @@ redis.register_function{
   callback = toFix,
   flags = { 'no-writes' }
 }
+
+redis.register_function{
+  function_name = 'formatTS',
+  callback = formatTS,
+  flags = { 'no-writes' }
+} 
 
 redis.register_function{
   function_name = 'countKeys',
