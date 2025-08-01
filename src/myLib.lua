@@ -8,7 +8,7 @@ local function ver(KEYS, ARGV)
   return redis.REDIS_VERSION
 end
 
--- Format linux timestamp to YYYY-MM-DD HH:MM:SS format
+-- Format linux timestamp to YYYY-MM-DD HH:MM:SS.DDD format
 -- Required:
 --      KEYS[1] = Timestamp to be formatted
 -- Optional:
@@ -62,6 +62,20 @@ local function formatTS(KEYS, ARGV)
   return string.format("%04d-%02d-%02d %02d:%02d:%02d.%03d", year, month, day, hour, minute, sec, millis)
 end
 
+-- Timestamp
+-- Optional:
+--      KEYS[1] = Timezone, +8 if unspecified
+-- Example usage: FCALL_RO TIMESTAMP 0
+--                FCALL_RO TIMESTAMP 1 8
+-- Output: "2025-08-01 14:49:37.686"
+local function timestamp(KEYS, ARGV) 
+  local offset = tonumber(KEYS[1]) or 8 -- UTC+8
+  local time = redis.call('TIME')
+  local timestampPart = time[1]
+  local microsecondsPart = time[2]
+
+  return formatTS({ timestampPart + (microsecondsPart / 1000000), offset }) 
+end
 
 -- Count number of keys and size of a pattern
 -- Optional:
@@ -344,7 +358,13 @@ redis.register_function{
   function_name = 'formatTS',
   callback = formatTS,
   flags = { 'no-writes' }
-} 
+}
+
+redis.register_function{
+  function_name = 'timestamp',
+  callback = timestamp,
+  flags = { 'no-writes' }
+}
 
 redis.register_function{
   function_name = 'countKeys',
