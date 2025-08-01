@@ -98,6 +98,20 @@ local function random(KEYS, ARGV)
   end
 end
 
+-- Log message 
+-- Optional:
+--      KEYS[1] = Message to be written to redis.log. 
+-- Example usage: FCALL_RO CONSOLELOG 1 "Hello, World!"
+--                FCALL_RO CONSOLELOG 0 
+-- Output: "Ok"
+local function consoleLog(KEYS, ARGV)
+  local message = KEYS[1] or 
+  '"Years of love have been forgot, In the hatred of a minute." - Edgar Allan Poe'
+
+  redis.log(redis.LOG_WARNING, 'LOG > ' .. message)
+  return 'Ok'
+end
+
 -- Count number of keys and size of a pattern
 -- Optional:
 --      KEYS[1] = Prefix pattern (e.g., "user:*"), * if unspecified
@@ -390,6 +404,12 @@ redis.register_function{
 redis.register_function{
   function_name = 'random',
   callback = random,
+  flags = { 'no-writes' }
+}
+
+redis.register_function{
+  function_name = 'consoleLog',
+  callback = consoleLog,
   flags = { 'no-writes' }
 }
 
