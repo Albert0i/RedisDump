@@ -331,3 +331,36 @@ redis.register_function{
   callback = scanTextChi,
     flags = { 'no-writes' }
 }
+
+
+--
+-- Testing !!!
+--
+local function my_hset(keys, args)
+  local hash = keys[1]
+  local time = redis.call('TIME')[1]
+  return redis.call('HSET', hash, '_last_modified_', time, unpack(args))
+end
+
+local function my_hgetall(keys, args)
+  redis.setresp(3)
+  local hash = keys[1]
+  local res = redis.call('HGETALL', hash)
+  res['map']['_last_modified_'] = nil
+  return res
+end
+
+local function my_hlastmodified(keys, args)
+  local hash = keys[1]
+  return redis.call('HGET', hash, '_last_modified_')
+end
+
+redis.register_function('my_hset', my_hset)
+redis.register_function('my_hgetall', my_hgetall)
+redis.register_function('my_hlastmodified', my_hlastmodified)
+
+-- 
+-- FCALL my_hset 1 myhash myfield "some value" another_field "another value"
+-- FCALL my_hgetall 1 myhash 
+-- FCALL my_hlastmodified 1 myhash 
+-- 
