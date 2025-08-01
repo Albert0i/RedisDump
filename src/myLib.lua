@@ -8,62 +8,6 @@ local function ver(KEYS, ARGV)
   return redis.REDIS_VERSION
 end
 
--- Lua Runtime libraries 
--- No parameter is required:
--- Example usage: FCALL_RO LIBS 0
--- Output:  1) " 1) _G              [Variable]"
---          2) " 2) _VERSION        [Variable]"
---          3) " 3) assert          [Function]"
---          4) " 4) bit             [Variable]"
---          5) " 5) cjson           [Variable]"
---          6) " 6) cmsgpack        [Variable]"
-local function libs(KEYS, ARGV)
-  local libs = {}
-  for k, v in pairs(_G) do
-    local vtype = type(v)
-    local category = (vtype == "function") and "Function" or "Variable"
-    table.insert(libs, { name = k, category = category })
-  end
-  
-  -- Sort by name
-  table.sort(libs, function(a, b) return a.name < b.name end)
-  
-  -- Build formatted output
-  local result = {}
-  for i, item in ipairs(libs) do
-    table.insert(result, string.format("%2d) %-15s [%s]", i, item.name, item.category))
-  end
-  
-  -- Return as a multi-line array
-  return result
-end 
-
--- Return RESP3 object
--- No parameter is required:
--- Example usage: FCALL_RO RESP3 0
--- Output:  "{ name = "iong_dev", status = "active", score = 98 }" if RESP3 is supported; 
---          "[]" if RESP3 is not supported.
-
-local function resp3(KEYS, ARGV)
-  redis.setresp(3)
-  return { name = "iong_dev", status = "active", score = 98 }  
-end
-
--- Round up to number of decimals
--- Required:
---      KEYS[1] = Number to be rounded
--- Optional:
---      KEYS[2] = Decimal positions, 2 if unspecified
--- Example usage: FCALL_RO TOFIX 2 123.456 2
---                FCALL_RO TOFIX 1 123.456
--- Output: "123.46"
-local function toFix(KEYS, ARGV)
-  local n = tonumber(KEYS[1])
-  local digits = tonumber(KEYS[2]) or 2
-
-  return string.format("%." .. digits .. "f", n)
-end
-
 -- Format linux timestamp to YYYY-MM-DD HH:MM:SS format
 -- Required:
 --      KEYS[1] = Timestamp to be formatted
@@ -132,6 +76,13 @@ local function countKeys(KEYS, ARGV)
   local totalCount = 0
   local totalSize = 0
 
+  local function toFix(number, decimal)
+    local n = tonumber(number)
+    local digits = tonumber(decimal) or 2
+  
+    return string.format("%." .. digits .. "f", n)
+  end  
+
   repeat
     local result = redis.call("SCAN", cursor, "MATCH", key, "COUNT", 1000)
     cursor = result[1]
@@ -146,7 +97,7 @@ local function countKeys(KEYS, ARGV)
     end
   until cursor == "0"
 
-  return { tostring(totalCount), toFix( { totalSize / 1024 /1024 } )..'M' }
+  return { tostring(totalCount), toFix( totalSize / 1024 /1024 )..'M' }
 end
 
 -- Delete keys of a pattern
@@ -174,6 +125,48 @@ local function delall(KEYS, ARGV)
   until cursor == "0"
 
   return deletedCount
+end
+
+-- Expire keys of a pattern
+-- Required::
+--      KEYS[1] = Prefix pattern (e.g., "user:*")
+--      KEYS[2] = Seconds 
+-- Optional: 
+--      KEYS[3] = NX | XX | GT | LT
+-- Example usage: FCALL DELALL 1 temp:*
+-- Output: 1) Number of keys deleted
+local function expireall(KEYS, ARGV)
+  local pattern = KEYS[1]
+  local seconds = tonumber(KEYS[2])
+  local option = KEYS[3]
+  local validOptions = { NX = true, XX = true, GT = true, LT = true }
+
+  local cursor = "0"
+  local expireCount = 0
+
+  if (pattern == nil or pattern == '*') then
+      return -1
+  end 
+  if option and not validOptions[option] then
+    return -1
+  end  
+
+  repeat
+      local result = redis.call("SCAN", cursor, "MATCH", pattern, "COUNT", 1000)
+      cursor = result[1]
+      local keys = result[2]
+
+      for i = 1, #keys do
+          if (option) then 
+            redis.call("EXPIRE", keys[i], seconds, option)
+          else 
+            redis.call("EXPIRE", keys[i], seconds)
+          end           
+          expireCount = expireCount + 1
+      end
+  until cursor == "0"
+
+  return expireCount
 end
 
 
@@ -231,39 +224,39 @@ end
 --
 -- Experimental !!!
 -- 
-local function debugPrint(message)
-  redis.log(redis.LOG_WARNING, 'DEBUG > ' .. (message or ''))
-end
+-- local function debugPrint(message)
+--   redis.log(redis.LOG_WARNING, 'DEBUG > ' .. (message or ''))
+-- end
 
-local function table_to_string(tbl)
-  local parts = {}
-  for k, v in pairs(tbl) do
-    local key = tostring(k)
-    local val = tostring(v)
+-- local function table_to_string(tbl)
+--   local parts = {}
+--   for k, v in pairs(tbl) do
+--     local key = tostring(k)
+--     local val = tostring(v)
 
-    if (val == "") then 
-      val = "nil"
-    end
-    table.insert(parts, key .. " = '" .. val .. "'")
-  end
-  return "{" .. table.concat(parts, ", ") .. "}"
-end
+--     if (val == "") then 
+--       val = "nil"
+--     end
+--     table.insert(parts, key .. " = '" .. val .. "'")
+--   end
+--   return "{" .. table.concat(parts, ", ") .. "}"
+-- end
 
 -- Builds a key-value table from two equally sized input tables
-local function array_to_map(field_name_table, field_value_table)
-  local result = {}
+-- local function array_to_map(field_name_table, field_value_table)
+--   local result = {}
 
-  debugPrint()
-  debugPrint("field_name_table: " .. table_to_string(field_name_table))
-  debugPrint("field_value_table: " .. table_to_string(field_value_table))
+--   debugPrint()
+--   debugPrint("field_name_table: " .. table_to_string(field_name_table))
+--   debugPrint("field_value_table: " .. table_to_string(field_value_table))
 
-  for i = 1, #field_name_table do
-    result[field_name_table[i]] = field_value_table[i]
-  end
+--   for i = 1, #field_name_table do
+--     result[field_name_table[i]] = field_value_table[i]
+--   end
 
-  debugPrint("result_table: " .. table_to_string(result))
-  return result
-end
+--   debugPrint("result_table: " .. table_to_string(result))
+--   return result
+-- end
 
 -- 
 -- Return Redis hashes matching a pattern and has a field which contains a value,
@@ -337,6 +330,7 @@ local function scanTextChi(KEYS, ARGV)
   return matched
 end
 
+
 --
 -- Register Redis Functions 
 -- 
@@ -344,24 +338,6 @@ redis.register_function{
   function_name='ver',
   callback=ver,
   flags={ 'no-writes' }
-}
-
-redis.register_function{
-  function_name='libs',
-  callback=libs,
-  flags={ 'no-writes' }
-}
-
-redis.register_function{
-  function_name = 'resp3',
-  callback = resp3,
-    flags = { 'no-writes' }
-}
-
-redis.register_function{
-  function_name = 'toFix',
-  callback = toFix,
-  flags = { 'no-writes' }
 }
 
 redis.register_function{
@@ -377,6 +353,8 @@ redis.register_function{
 } 
 
 redis.register_function('delall', delall )
+
+redis.register_function('expireall', expireall )
 
 redis.register_function('zAddIncr', zAddIncr)
 
@@ -396,28 +374,28 @@ redis.register_function{
 --
 -- Testing !!!
 --
-local function my_hset(keys, args)
-  local hash = keys[1]
-  local time = redis.call('TIME')[1]
-  return redis.call('HSET', hash, '_last_modified_', time, unpack(args))
-end
+-- local function my_hset(keys, args)
+--   local hash = keys[1]
+--   local time = redis.call('TIME')[1]
+--   return redis.call('HSET', hash, '_last_modified_', time, unpack(args))
+-- end
 
-local function my_hgetall(keys, args)
-  redis.setresp(3)
-  local hash = keys[1]
-  local res = redis.call('HGETALL', hash)
-  res['map']['_last_modified_'] = nil
-  return res
-end
+-- local function my_hgetall(keys, args)
+--   redis.setresp(3)
+--   local hash = keys[1]
+--   local res = redis.call('HGETALL', hash)
+--   res['map']['_last_modified_'] = nil
+--   return res
+-- end
 
-local function my_hlastmodified(keys, args)
-  local hash = keys[1]
-  return redis.call('HGET', hash, '_last_modified_')
-end
+-- local function my_hlastmodified(keys, args)
+--   local hash = keys[1]
+--   return redis.call('HGET', hash, '_last_modified_')
+-- end
 
-redis.register_function('my_hset', my_hset)
-redis.register_function('my_hgetall', my_hgetall)
-redis.register_function('my_hlastmodified', my_hlastmodified)
+-- redis.register_function('my_hset', my_hset)
+-- redis.register_function('my_hgetall', my_hgetall)
+-- redis.register_function('my_hlastmodified', my_hlastmodified)
 
 -- 
 -- FCALL my_hset 1 myhash myfield "some value" another_field "another value"
