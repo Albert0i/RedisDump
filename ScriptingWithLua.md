@@ -405,9 +405,8 @@ return x
 > Please refer to [Script flags](https://redis.io/docs/latest/develop/programmability/lua-api/#script_flags) to learn about the various scripts and the defaults.
 
 ---
-[Redis Lua API reference](https://redis.io/docs/latest/develop/programmability/lua-api/)
 
-[Script flags](https://redis.io/docs/latest/develop/programmability/lua-api/#script_flags)
+##### [Script flags](https://redis.io/docs/latest/develop/programmability/lua-api/#script_flags)
 
 > **Important**: Use script flags with care, which may negatively impact if misused. Note that the default for Eval scripts are different than the default for functions that are mentioned below, see [Eval Flags](https://redis.io/docs/latest/develop/programmability/eval-intro/#eval-flags)
 
@@ -455,7 +454,7 @@ return x
 
 > Please refer to [Function Flags](https://redis.io/docs/latest/develop/programmability/functions-intro/#function-flags) and [Eval Flags](https://redis.io/docs/latest/develop/programmability/eval-intro/#eval-flags) for a detailed example.
 
-**redis.register_function**
+##### **redis.register_function**
 
 - Since version: 7.0.0
 - Available in scripts: no
