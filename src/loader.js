@@ -7,7 +7,7 @@ import { readFile } from 'fs/promises';
 await redis.connect();
 
 // 1️⃣ Load Lua function from file
-const luaScript = await readFile('./src/myLib.lua', 'utf8');
+const luaScript = await readFile('./src/lua/myLib.lua', 'utf8');
 console.log(await redis.sendCommand(['FUNCTION', 'LOAD', 'REPLACE', luaScript]), 'loaded');
 
 // // 2️⃣ Call the function
