@@ -1,0 +1,647 @@
+### [Scripting with Lua](https://redis.io/docs/latest/develop/programmability/eval-intro/)
+> "And it is not a case of habit, feelings do not become blunted by dint of habit when it’s a simple matter of judgement; one just has to abandon one’s misconceptions."<br />The Castle by Franz Kafka
+
+
+#### Prologue 
+```
+Forget what we won't,
+Accept what we don't,
+Challenge what we daren't. 
+
+Inward dread and anguish overcomes, 
+but not flesh and blood,  
+This is the end,
+all the same beginning of things. 
+```
+
+
+#### I. [Redis programmability](https://redis.io/docs/latest/develop/programmability/) (TL;DR)
+> Extending Redis with Lua and Redis Functions
+
+> Redis provides a programming interface that lets you execute custom scripts on the server itself. In Redis 7 and beyond, you can use [Redis Functions](https://redis.io/docs/latest/develop/programmability/functions-intro/) to manage and run your scripts. In Redis 6.2 and below, you use [Lua scripting with the EVAL command](https://redis.io/docs/latest/develop/programmability/eval-intro/) to program the server.
+
+##### **Background** 
+
+> Redis is, by [definition](https://github.com/redis/redis/blob/unstable/MANIFESTO#L7), a *"domain-specific language for abstract data types"*. The language that Redis speaks consists of its [commands](https://redis.io/docs/latest/commands/). Most the commands specialize at manipulating core [data types](https://redis.io/docs/latest/develop/data-types/) in different ways. In many cases, these commands provide all the functionality that a developer requires for managing application data in Redis.
+
+> The term **programmability** in Redis means having the ability to execute arbitrary user-defined logic by the server. We refer to such pieces of logic as **scripts**. In our case, scripts enable processing the data where it lives, a.k.a *data locality*. Furthermore, the responsible embedding of programmatic workflows in the Redis server can help in reducing network traffic and improving overall performance. Developers can use this capability for implementing robust, application-specific APIs. Such APIs can encapsulate business logic and maintain a data model across multiple keys and different data structures.
+
+> User scripts are executed in Redis by an embedded, sandboxed scripting engine. Presently, Redis supports a single scripting engine, the [Lua 5.1](https://www.lua.org/) interpreter.
+
+> Please refer to the [Redis Lua API Reference](https://redis.io/docs/latest/develop/programmability/lua-api/) page for complete documentation.
+
+##### **Running scripts**
+
+> Redis provides two means for running scripts.
+
+> Firstly, and ever since Redis 2.6.0, the [EVAL](https://redis.io/docs/latest/commands/eval/) command enables running server-side scripts. Eval scripts provide a quick and straightforward way to have Redis run your scripts ad-hoc. However, using them means that the scripted logic is a part of your application (not an extension of the Redis server). Every applicative instance that runs a script must have the script's source code readily available for loading at any time. That is because scripts are only cached by the server and are volatile. As your application grows, this approach can become harder to develop and maintain.
+
+> Secondly, added in v7.0, Redis Functions are essentially scripts that are first-class database elements. As such, functions decouple scripting from application logic and enable independent development, testing, and deployment of scripts. To use functions, they need to be loaded first, and then they are available for use by all connected clients. In this case, loading a function to the database becomes an administrative deployment task (such as loading a Redis module, for example), which separates the script from the application.
+
+> Please refer to the following pages for more information:
+
+- [Redis Eval Scripts](https://redis.io/docs/latest/develop/programmability/eval-intro/)
+- [Redis Functions](https://redis.io/docs/latest/develop/programmability/functions-intro/)
+
+> When running a script or a function, Redis guarantees its atomic execution. The script's execution blocks all server activities during its entire time, similarly to the semantics of [transactions](https://redis.io/docs/latest/develop/using-commands/transactions/). These semantics mean that all of the script's effects either have yet to happen or had already happened. The blocking semantics of an executed script apply to all connected clients at all times.
+
+> Note that the potential downside of this blocking approach is that executing slow scripts is not a good idea. It is not hard to create fast scripts because scripting's overhead is very low. However, if you intend to use a slow script in your application, be aware that all other clients are blocked and can't execute any command while it is running.
+
+##### **Read-only scripts**
+
+> A read-only script is a script that only executes commands that don't modify any keys within Redis. Read-only scripts can be executed either by adding the no-writes [flag](https://redis.io/docs/latest/develop/programmability/lua-api/#script_flags) to the script or by executing the script with one of the read-only script command variants: [EVAL_RO](https://redis.io/docs/latest/commands/eval_ro/), [EVALSHA_RO](https://redis.io/docs/latest/commands/evalsha_ro/), or [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/). They have the following properties:
+
+- They can always be executed on replicas.
+- They can always be killed by the [SCRIPT KILL](https://redis.io/docs/latest/commands/script-kill/) command.
+- They never fail with OOM error when redis is over the memory limit.
+- They are not blocked during write pauses, such as those that occur during coordinated failovers.
+- They cannot execute any command that may modify the data set.
+- Currently [PUBLISH](https://redis.io/docs/latest/commands/publish/), [SPUBLISH](https://redis.io/docs/latest/commands/spublish/) and [PFCOUNT](https://redis.io/docs/latest/commands/pfcount/) are also considered write commands in scripts, because they could attempt to propagate commands to replicas and AOF file.
+
+> In addition to the benefits provided by all read-only scripts, the read-only script commands have the following advantages:
+
+- They can be used to configure an ACL user to only be able to execute read-only scripts.
+- Many clients also better support routing the read-only script commands to replicas for applications that want to use replicas for read scaling.
+
+Read-only script history 
+
+> Read-only scripts and read-only script commands were introduced in Redis 7.0
+
+- Before Redis 7.0.1 [PUBLISH](https://redis.io/docs/latest/commands/publish/), [SPUBLISH](https://redis.io/docs/latest/commands/spublish/) and [PFCOUNT](https://redis.io/docs/latest/commands/pfcount/) were not considered write commands in scripts
+- Before Redis 7.0.1 the no-writes [flag](https://redis.io/docs/latest/develop/programmability/lua-api/#script_flags) did not imply allow-oom
+- Before Redis 7.0.1 the no-writes [flag](https://redis.io/docs/latest/develop/programmability/lua-api/#script_flags) did not permit the script to run during write pauses.
+
+> The recommended approach is to use the standard scripting commands with the no-writes flag unless you need one of the previously mentioned features.
+
+##### **Sandboxed script context** 
+
+> Redis places the engine that executes user scripts inside a sandbox. The sandbox attempts to prevent accidental misuse and reduce potential threats from the server's environment.
+
+> Scripts should never try to access the Redis server's underlying host systems, such as the file system, network, or attempt to perform any other system call other than those supported by the API.
+
+> Scripts should operate solely on data stored in Redis and data provided as arguments to their execution.
+
+##### **Maximum execution time**
+
+> Scripts are subject to a maximum execution time (set by default to five seconds). This default timeout is enormous since a script usually runs in less than a millisecond. The limit is in place to handle accidental infinite loops created during development.
+
+> It is possible to modify the maximum time a script can be executed with millisecond precision, either via redis.conf or by using the [CONFIG SET](https://redis.io/docs/latest/commands/config-set/) command. The configuration parameter affecting max execution time is called busy-reply-threshold.
+
+> When a script reaches the timeout threshold, it isn't terminated by Redis automatically. Doing so would violate the contract between Redis and the scripting engine that ensures that scripts are atomic. Interrupting the execution of a script has the potential of leaving the dataset with half-written changes.
+
+> Therefore, when a script executes longer than the configured timeout, the following happens:
+
+- Redis logs that a script is running for too long.
+- It starts accepting commands again from other clients but will reply with a BUSY error to all the clients sending normal commands. The only commands allowed in this state are [SCRIPT KILL](https://redis.io/docs/latest/commands/script-kill/), [FUNCTION KILL](https://redis.io/docs/latest/commands/function-kill/), and SHUTDOWN NOSAVE.
+- It is possible to terminate a script that only executes read-only commands using the [SCRIPT KILL](https://redis.io/docs/latest/commands/script-kill/) and [FUNCTION KILL](https://redis.io/docs/latest/commands/function-kill/) commands. These commands do not violate the scripting semantic as no data was written to the dataset by the script yet.
+- If the script had already performed even a single write operation, the only command allowed is SHUTDOWN NOSAVE that stops the server without saving the current data set on disk (basically, the server is aborted).
+
+[Redis functions](https://redis.io/docs/latest/develop/programmability/functions-intro/)
+
+Scripting with Redis 7 and beyond
+
+[Scripting with Lua](https://redis.io/docs/latest/develop/programmability/eval-intro/)
+
+Executing Lua in Redis
+
+[Redis Lua API reference](https://redis.io/docs/latest/develop/programmability/lua-api/)
+
+Executing Lua in Redis
+
+[Debugging Lua scripts in Redis](https://redis.io/docs/latest/develop/programmability/lua-debugging/)
+
+How to use the built-in Lua debugger
+
+
+#### II. [Scripting with Lua](https://redis.io/docs/latest/develop/programmability/eval-intro/) (TL;DR)
+> Executing Lua in Redis
+
+> Redis lets users upload and execute Lua scripts on the server. Scripts can employ programmatic control structures and use most of the [commands](https://redis.io/docs/latest/commands/) while executing to access the database. Because scripts execute in the server, reading and writing data from scripts is very efficient.
+
+> Redis guarantees the script's atomic execution. While executing the script, all server activities are blocked during its entire runtime. These semantics mean that all of the script's effects either have yet to happen or had already happened.
+
+> Scripting offers several properties that can be valuable in many cases. These include:
+
+- Providing locality by executing logic where data lives. Data locality reduces overall latency and saves networking resources.
+- Blocking semantics that ensure the script's atomic execution.
+- Enabling the composition of simple capabilities that are either missing from Redis or are too niche to be a part of it.
+
+> Lua lets you run part of your application logic inside Redis. Such scripts can perform conditional updates across multiple keys, possibly combining several different data types atomically.
+
+> Scripts are executed in Redis by an embedded execution engine. Presently, Redis supports a single scripting engine, the [Lua 5.1](https://www.lua.org/) interpreter. Please refer to the [Redis Lua API Reference](https://redis.io/docs/latest/develop/programmability/lua-api/) page for complete documentation.
+
+> Although the server executes them, Eval scripts are regarded as a part of the client-side application, which is why they're not named, versioned, or persisted. So all scripts may need to be reloaded by the application at any time if missing (after a server restart, fail-over to a replica, etc.). As of version 7.0, [Redis Functions](https://redis.io/docs/latest/develop/programmability/functions-intro/) offer an alternative approach to programmability which allow the server itself to be extended with additional programmed logic.
+
+##### **Getting started**
+
+> We'll start scripting with Redis by using the [EVAL](https://redis.io/docs/latest/commands/eval/) command.
+
+> Here's our first example:
+
+```
+> EVAL "return 'Hello, scripting!'" 0
+"Hello, scripting!"
+```
+
+> In this example, [EVAL](https://redis.io/docs/latest/commands/eval/) takes two arguments. The first argument is a string that consists of the script's Lua source code. The script doesn't need to include any definitions of Lua function. It is just a Lua program that will run in the Redis engine's context.
+
+> The second argument is the number of arguments that follow the script's body, starting from the third argument, representing Redis key names. In this example, we used the value 0 because we didn't provide the script with any arguments, whether the names of keys or not.
+
+##### **Script parameterization**
+
+It is possible, although highly ill-advised, to have the application dynamically generate script source code per its needs. For example, the application could send these two entirely different, but at the same time perfectly identical scripts:
+
+```
+redis> EVAL "return 'Hello'" 0
+"Hello"
+redis> EVAL "return 'Scripting!'" 0
+"Scripting!"
+```
+
+> Although this mode of operation isn't blocked by Redis, it is an anti-pattern due to script cache considerations (more on the topic below). Instead of having your application generate subtle variations of the same scripts, you can parametrize them and pass any arguments needed for to execute them.
+
+> The following example demonstrates how to achieve the same effects as above, but via parameterization:
+
+```
+redis> EVAL "return ARGV[1]" 0 Hello
+"Hello"
+redis> EVAL "return ARGV[1]" 0 Parameterization!
+"Parameterization!"
+```
+
+> At this point, it is essential to understand the distinction Redis makes between input arguments that are names of keys and those that aren't.
+
+> While key names in Redis are just strings, unlike any other string values, these represent keys in the database. The name of a key is a fundamental concept in Redis and is the basis for operating the Redis Cluster.
+
+> **Important**: to ensure the correct execution of scripts, both in standalone and clustered deployments, all names of keys that a script accesses must be explicitly provided as input key arguments. The script **should only** access keys whose names are given as input arguments. Scripts **should never** access keys with programmatically-generated names or based on the contents of data structures stored in the database.
+
+> Any input to the function that isn't the name of a key is a regular input argument.
+
+> In the example above, both *Hello* and *Parameterization*! regular input arguments for the script. Because the script doesn't touch any keys, we use the numerical argument *0* to specify there are no key name arguments. The execution context makes arguments available to the script through [KEYS](https://redis.io/docs/latest/develop/programmability/lua-api/#the-keys-global-variable) and [ARGV](https://redis.io/docs/latest/develop/programmability/lua-api/#the-argv-global-variable) global runtime variables. The *KEYS* table is pre-populated with all key name arguments provided to the script before its execution, whereas the *ARGV* table serves a similar purpose but for regular arguments.
+
+> The following attempts to demonstrate the distribution of input arguments between the scripts *KEYS* and *ARGV* runtime global variables:
+
+```
+redis> EVAL "return { KEYS[1], KEYS[2], ARGV[1], ARGV[2], ARGV[3] }" 2 key1 key2 arg1 arg2 arg3
+1) "key1"
+2) "key2"
+3) "arg1"
+4) "arg2"
+5) "arg3"
+```
+
+**Note**: as can been seen above, Lua's table arrays are returned as [RESP2 array replies](https://redis.io/docs/latest/develop/reference/protocol-spec/#resp-arrays), so it is likely that your client's library will convert it to the native array data type in your programming language. Please refer to the rules that govern [data type conversion](https://redis.io/docs/latest/develop/programmability/lua-api/#data-type-conversion) for more pertinent information.
+
+##### **Interacting with Redis from a script**
+
+> It is possible to call Redis commands from a Lua script either via [redis.call()](https://redis.io/docs/latest/develop/programmability/lua-api/#redis.call) or [redis.pcall()](https://redis.io/docs/latest/develop/programmability/lua-api/#redis.pcall).
+
+> The two are nearly identical. Both execute a Redis command along with its provided arguments, if these represent a well-formed command. However, the difference between the two functions lies in the manner in which runtime errors (such as syntax errors, for example) are handled. Errors raised from calling redis.call() function are returned directly to the client that had executed it. Conversely, errors encountered when calling the redis.pcall() function are returned to the script's execution context instead for possible handling.
+
+> For example, consider the following:
+
+```
+> EVAL "return redis.call('SET', KEYS[1], ARGV[1])" 1 foo bar
+OK
+```
+
+The above script accepts one key name and one value as its input arguments. When executed, the script calls the [SET](https://redis.io/docs/latest/commands/set/) command to set the input key, *foo*, with the string value "bar".
+
+##### **Script cache**
+
+> Until this point, we've used the [EVAL](https://redis.io/docs/latest/commands/eval/) command to run our script.
+
+> Whenever we call [EVAL](https://redis.io/docs/latest/commands/eval/), we also include the script's source code with the request. Repeatedly calling [EVAL](https://redis.io/docs/latest/commands/eval/) to execute the same set of parameterized scripts, wastes both network bandwidth and also has some overheads in Redis. Naturally, saving on network and compute resources is key, so, instead, Redis provides a caching mechanism for scripts.
+
+> Every script you execute with [EVAL](https://redis.io/docs/latest/commands/eval/) is stored in a dedicated cache that the server keeps. The cache's contents are organized by the scripts' SHA1 digest sums, so the SHA1 digest sum of a script uniquely identifies it in the cache. You can verify this behavior by running [EVAL](https://redis.io/docs/latest/commands/eval/) and calling [INFO](https://redis.io/docs/latest/commands/info/) afterward. You'll notice that the *used_memory_scripts_eval* and *number_of_cached_scripts* metrics grow with every new script that's executed.
+
+> As mentioned above, dynamically-generated scripts are an [anti-pattern](https://en.wikipedia.org/wiki/Anti-pattern). Generating scripts during the application's runtime may, and probably will, exhaust the host's memory resources for caching them. Instead, scripts should be as generic as possible and provide customized execution via their arguments.
+
+> A script is loaded to the server's cache by calling the [SCRIPT LOAD](https://redis.io/docs/latest/commands/script-load/) command and providing its source code. The server doesn't execute the script, but instead just compiles and loads it to the server's cache. Once loaded, you can execute the cached script with the SHA1 digest returned from the server.
+
+> Here's an example of loading and then executing a cached script:
+
+```
+redis> SCRIPT LOAD "return 'Immabe a cached script'"
+"c664a3bf70bd1d45c4284ffebb65a6f2299bfc9f"
+redis> EVALSHA c664a3bf70bd1d45c4284ffebb65a6f2299bfc9f 0
+"Immabe a cached script"
+```
+
+##### **Cache volatility**
+
+> The Redis script cache is **always volatile**. It isn't considered as a part of the database and is **not persisted**. The cache may be cleared when the server restarts, during fail-over when a replica assumes the master role, or explicitly by [SCRIPT FLUSH](https://redis.io/docs/latest/commands/script-flush/). That means that cached scripts are ephemeral, and the cache's contents can be lost at any time.
+
+> Applications that use scripts should always call [EVALSHA](https://redis.io/docs/latest/commands/evalsha/) to execute them. The server returns an error if the script's SHA1 digest is not in the cache. For example:
+
+```
+redis> EVALSHA ffffffffffffffffffffffffffffffffffffffff 0
+(error) NOSCRIPT No matching script
+```
+
+> In this case, the application should first load it with [SCRIPT LOAD](https://redis.io/docs/latest/commands/script-load/) and then call [EVALSHA](https://redis.io/docs/latest/commands/evalsha/) once more to run the cached script by its SHA1 sum. Most of Redis' clients already provide utility APIs for doing that automatically. Please consult your client's documentation regarding the specific details.
+
+**EVALSHA in the context of pipelining**
+
+> Special care should be given executing [EVALSHA](https://redis.io/docs/latest/commands/evalsha/) in the context of a [pipelined request](https://redis.io/docs/latest/develop/using-commands/pipelining/). The commands in a pipelined request run in the order they are sent, but other clients' commands may be interleaved for execution between these. Because of that, the NOSCRIPT error can return from a pipelined request but can't be handled.
+
+> Therefore, a client library's implementation should revert to using plain [EVAL](https://redis.io/docs/latest/commands/eval/) of parameterized in the context of a pipeline.
+
+**Script cache semantics** 
+
+
+
+
+
+
+
+
+
+#### III. A Quick Start Guide 
+For those who don't want to crawl through official documentations: 
+
+- [Redis programmability](https://redis.io/docs/latest/develop/programmability/) outlines the whole landscape of Redis programming ecology. 
+- [Scripting with Lua](https://redis.io/docs/latest/develop/programmability/eval-intro/) describes Lua Scripting in Redis in general.
+- [Redis functions](https://redis.io/docs/latest/develop/programmability/functions-intro/) describes the new Redis Functions features. 
+
+Redis Functions are functions written in Lua. The syntax for function definition is: 
+```
+	function ::= function funcbody
+	funcbody ::= `(´ [parlist] `)´ block end
+```
+
+The following syntactic sugar simplifies function definitions:
+```
+	stat ::= function funcname funcbody
+	stat ::= local function Name funcbody
+	funcname ::= Name {`.´ Name} [`:´ Name]
+```
+
+They are loaded into Redis and survive a server reboot and therefore provide better way to share code among Redis clients. Redis Functions can be invoked via [FCALL](https://redis.io/docs/latest/commands/fcall/) or [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) depending on whether the functions perform read/write or read only operations. The use of [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) offers subtle advantages and you *should* always stick to it whenever possible. If you are already familiar Lua Script, converting existing scripts into Redis Functions is only a couple of steps. 
+
+Code template for Redis function: 
+```
+#!lua name=mylib
+
+local function myfunc(KEYS, ARGV)
+  <place your lua script here>
+end
+
+redis.register_function('myfunc', myfunc )
+```
+
+Code template for Redis function with **no-writes** [flag](https://redis.io/docs/latest/develop/programmability/lua-api/#script_flags):
+```
+#!lua name=mylib
+
+local function myfunc(KEYS, ARGV)
+  <place your lua script here>
+end
+
+redis.register_function{
+  function_name = 'myfunc',
+  callback = myfunc,
+  flags = { 'no-writes' }
+} 
+```
+
+The first line states that we are using Lua as scripting engine and name of the library. I *deliberately* opt `KEYS` for keys arguments and `ARGV` for regular arguments to comply the naming convention in Lua Script. Functions of read/write and read only bear different syntax. You can create a file mixed with read write and read only functions. All functions of a library have to loaded in one go. 
+
+`loader.js`
+```
+import { redis } from './redis/redis.js'
+import { readFile } from 'fs/promises';
+
+/*
+   main 
+*/
+await redis.connect();
+
+// Load Lua function from file
+const luaScript = await readFile('./src/myLib.lua', 'utf8');
+console.log(await redis.sendCommand(['FUNCTION', 'LOAD', 'REPLACE', luaScript]), 'loaded');
+
+await redis.close();
+process.exit(0)
+```
+
+Run command to load Redis Functions with: 
+```
+node src/loader.js
+mylib loaded
+```
+
+And check with: 
+```
+> FUNCTION LIST LIBRARYNAME mylib
+1) 1) "library_name"
+   2) "mylib"
+   3) "engine"
+   4) "LUA"
+   5) "functions"
+   6) 1) 1) "name"
+         2) "countKeys"
+         3) "description"
+         4) "null"
+         5) "flags"
+         6) 1) "no-writes"
+      2) 1) "name"
+         2) "delall"
+         3) "description"
+         4) "null"
+         5) "flags"
+         6) (empty list or set)
+      3) 1) "name"
+         2) "zAddIncr"
+         3) "description"
+         4) "null"
+         5) "flags"
+         6) (empty list or set)
+      4) 1) "name"
+         2) "ver"
+         3) "description"
+         4) "null"
+         5) "flags"
+         6) 1) "no-writes"
+      5) 1) "name"
+         2) "scanTextChi"
+         3) "description"
+         4) "null"
+         5) "flags"
+         6) 1) "no-writes"
+      6) 1) "name"
+         2) "libs"
+         3) "description"
+         4) "null"
+         5) "flags"
+         6) 1) "no-writes"
+      7) 1) "name"
+         2) "toFix"
+         3) "description"
+         4) "null"
+         5) "flags"
+         6) 1) "no-writes"
+      8) 1) "name"
+         2) "zSumScore"
+         3) "description"
+         4) "null"
+         5) "flags"
+         6) 1) "no-writes"
+```
+
+Done!
+
+
+#### IV. Example usage
+##### **Really trivial things**
+To get the Redis Version: 
+```
+> FCALL_RO VER 0
+"8.0.2"
+```
+
+To round up a number to a number of decimal place: 
+```
+> FCALL_RO TOFIX 2 123.456 2
+"123.46"
+
+> FCALL_RO TOFIX 1 123.456
+"123.46"
+```
+
+##### **Utility functions**
+Sometimes it is necessary to check number of keys of a pattern and it's size: 
+```
+> FCALL_RO COUNTKEYS 1 DONGDICT:*
+1) "28792"
+2) "32.73M"
+
+> FCALL_RO COUNTKEYS 1 DIRINDEX:*
+1) "31009"
+2) "25.07M"
+```
+
+Sometimes it is necessary to remove keys of a pattern: 
+```
+> FCALL DELALL 1 temp:*
+3
+
+> FCALL DELALL 1 cache:*
+12
+```
+
+You can do something like: 
+```
+DELETE FROM users; 
+```
+
+##### **Extension to underlaying Data Structures**
+Set, being the best candidate for data deduplication, sometimes it is convenient to keep the their number of  occurrence also. Every time a member is added to Sorted Set, it's score is increased by one: 
+```
+> FCALL ZADDINCR 1 testz a b c d e f 
+(integer) 6
+
+> FCALL ZADDINCR 1 testz a b c d e
+(integer) 5
+
+> FCALL ZADDINCR 1 testz a b c d
+(integer) 4
+
+> FCALL ZADDINCR 1 testz a b c
+(integer) 3
+
+> FCALL ZADDINCR 1 testz a b
+(integer) 2
+
+> FCALL ZADDINCR 1 testz a
+(integer) 1
+
+> FCALL_RO ZSUMSCORE 1 testz
+(integer) 21
+```
+
+With `ZADDINCR` and `ZSUMSCORE`, it is possible to keep track of **Cardinality**, **Membership** and **Frequency** in a single3 Sorted Set. 
+```
+> ZCARD testz
+(integer) 6
+
+> ZSCORE testz a
+"6"
+
+> ZSCORE testz g
+(nil)
+
+> ZRANGE testz 0 -1 REV WITHSCORES
+1) "a"
+2) "6"
+3) "b"
+4) "5"
+5) "c"
+6) "4"
+7) "d"
+8) "3"
+9) "e"
+10) "2"
+11) "f"
+12) "1"
+```
+
+##### **Proof of concept**
+Sometimes it is handy to find out Hash with field containing some text, like so using SQL: 
+```
+SELECT id, textChi, visited 
+FROM documents 
+WHERE textChi LIKE '%鄭文公%'
+limit 10 OFFSET 0;
+```
+
+`scanTextChi` is practically doing a `SCAN` key and test of condition, it is an inefficient way of searching... 
+```
+> FCALL_RO SCANTEXTCHI 5 fts:chinese:documents:* key 鄭文公 0 10 id textChi visited
+1) 1) "11199"
+   2) "\xe9\x84\xad\xe6\x96\x87\xe5\x85\xac<br / ..."
+   3) "0"
+```
+```   
+> FCALL_RO SCANTEXTCHI 3 fts:chinese:documents:* key 鄭文公
+1) 1) "updatedAt"
+   2) ""
+   3) "updateIdent"
+   4) "0"
+   5) "createdAt"
+   6) "2025-07-17T00:36:15.301Z"
+   7) "id"
+   8) "11199"
+   9) "textChi"
+   10) "\xe9\x84\xad\xe6\x96\x87\xe5\x85\xac<br / ..."
+   11) "visited"
+   12) "0"
+   13) "key"
+   14) "\xe9\x84\xad\xe6\x96\x87\xe5\x85\xac"
+```
+
+##### **Raw interface**
+Call with `sendCommand`: 
+```
+console.log(await redis.sendCommand(['FCALL_RO', 'VER', '0']))
+console.log(await redis.sendCommand(['FCALL_RO', 'COUNTKEYS', '0']))
+console.log(await redis.sendCommand(['FCALL_RO', 'SCANTEXTCHI', '3', 
+    'fts:chinese:documents:*', 'key', '陳文公', 
+    'id', 'key', 'textChi', 'visited']))
+console.log(await redis.sendCommand(['FCALL_RO', 'SCANTEXTCHI', '3', 
+    'fts:chinese:documents:*', 'key', '陳文公'])) 
+```
+
+![alt sendCommand](img/sendCommand.JPG)
+
+##### **The Wrapper**
+To wrap up with: 
+```
+redis.fCall = function(name, keys = [], args = []) {
+    const numkeys = keys.length.toString();
+    return this.sendCommand(['FCALL', name, numkeys, ...keys, ...args]);
+  };
+
+redis.fCallRo = function(name, keys = [], args = []) {
+    const numkeys = keys.length.toString();
+    return this.sendCommand(['FCALL_RO', name, numkeys, ...keys, ...args]);
+  };
+```
+
+And call it intuitively: 
+```
+console.log(await redis.fCallRo('ver', [], []))
+console.log(await redis.fCallRo('countKeys', [], []))
+console.log(await redis.fCallRo('scanTextChi', 
+    ['fts:chinese:documents:*', 'key', '陳文公'], 
+    ['id', 'key', 'textChi', 'visited']))
+console.log(await redis.fCallRo('scanTextChi', 
+    ['fts:chinese:documents:*', 'key', '陳文公']))
+```
+
+![alt fCall](img/fCall.JPG)
+
+
+#### V. Bibliography
+1. [Redis programmability](https://redis.io/docs/latest/develop/programmability/)
+2. [Scripting with Lua](https://redis.io/docs/latest/develop/programmability/eval-intro/)
+3. [Redis Lua API reference](https://redis.io/docs/latest/develop/programmability/lua-api/)
+4. [Redis functions](https://redis.io/docs/latest/develop/programmability/functions-intro/)
+5. [Lua 5.1 Reference Manual](https://www.lua.org/manual/5.1/)
+6. [Debugging Lua scripts in Redis](https://redis.io/docs/latest/develop/programmability/lua-debugging/)
+7. [The Castle by Franz Kafka](https://files.libcom.org/files/Franz%20Kafka-The%20Castle%20(Oxford%20World's%20Classics)%20(2009).pdf)
+
+
+#### VI. Appendix
+**Script command summary**
+```
+SCRIPT <subcommand> [<arg> [value] [opt] ...]. Subcommands are:
+
+    DEBUG (YES|SYNC|NO)
+        Set the debug mode for subsequent scripts executed.
+    EXISTS <sha1> [<sha1> ...]
+        Return information about the existence of the scripts in the script cache.
+    FLUSH [ASYNC|SYNC]
+        Flush the Lua scripts cache. Very dangerous on replicas.
+        When called without the optional mode argument, the behavior is determined by the
+        lazyfree-lazy-user-flush configuration directive. Valid modes are:
+    ASYNC: Asynchronously flush the scripts cache.
+    SYNC: Synchronously flush the scripts cache.
+    KILL
+        Kill the currently executing Lua script.
+    LOAD <script>
+        Load a script into the scripts cache without executing it.
+    HELP
+        Print this help.
+```
+
+**Function command summary**
+```
+FUNCTION <subcommand> [<arg> [value] [opt] ...]. Subcommands are:
+
+    LOAD [REPLACE] <FUNCTION CODE>
+        Create a new library with the given library name and code.
+    DELETE <LIBRARY NAME>
+        Delete the given library.
+    LIST [LIBRARYNAME PATTERN] [WITHCODE]
+        Return general information on all the libraries:
+        Library name
+        The engine used to run the Library
+        Library description
+        Functions list
+        * Library code (if WITHCODE is given)
+        It also possible to get only function that matches a pattern using LIBRARYNAME argument.
+    STATS
+        Return information about the current function running:
+        Function name
+        Command used to run the function
+        Duration in MS that the function is running
+        If no function is running, return nil
+        In addition, returns a list of available engines.
+    KILL
+        Kill the current running function.
+    FLUSH [ASYNC|SYNC]
+        Delete all the libraries.
+        When called without the optional mode argument, the behavior is determined by the
+        lazyfree-lazy-user-flush configuration directive. Valid modes are:
+        * ASYNC: Asynchronously flush the libraries.
+        * SYNC: Synchronously flush the libraries.
+    DUMP
+        Return a serialized payload representing the current libraries, can be restored using FUNCTION RESTORE command
+    RESTORE <PAYLOAD> [FLUSH|APPEND|REPLACE]
+        Restore the libraries represented by the given payload, it is possible to give a restore policy to
+        control how to handle existing libraries (default APPEND):
+        * FLUSH: delete all existing libraries.
+        * APPEND: appends the restored libraries to the existing libraries. On collision, abort.
+        * REPLACE: appends the restored libraries to the existing libraries, On collision, replace the old
+        libraries with the new libraries (notice that even on this option there is a chance of failure"
+        in case of functions name collision with another library).
+    HELP
+        Print this help.
+```
+
+
+#### Epilogue 
+
+
+### EOF (2025/08/01)
