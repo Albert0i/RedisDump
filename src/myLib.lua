@@ -97,7 +97,7 @@ local function random(KEYS, ARGV)
   end
 end
 
--- Log message 
+-- Log message to redis.log
 -- Optional:
 --      KEYS[1] = Message to be written to redis.log. 
 -- Example usage: FCALL_RO CONSOLELOG 1 "Hello, World!"
@@ -397,61 +397,85 @@ end
 redis.register_function{
   function_name='ver',
   callback=ver,
-  flags={ 'no-writes' }
+  flags={ 'no-writes' }, 
+  description = 'Redis Version'
 }
 
 redis.register_function{
   function_name = 'formatTS',
   callback = formatTS,
-  flags = { 'no-writes' }
+  flags = { 'no-writes' },
+  description = 'Format linux timestamp to YYYY-MM-DD HH:MM:SS.DDD format'
 }
 
 redis.register_function{
   function_name = 'timestamp',
   callback = timestamp,
-  flags = { 'no-writes' }
+  flags = { 'no-writes' },
+  description = 'Timestamp'
 }
 
 redis.register_function{
   function_name = 'random',
   callback = random,
-  flags = { 'no-writes' }
+  flags = { 'no-writes' },
+  description = 'Random'
 }
 
 redis.register_function{
   function_name = 'consoleLog',
   callback = consoleLog,
-  flags = { 'no-writes' }
+  flags = { 'no-writes' },
+  description = 'Log message to redis.log'
 }
 
 redis.register_function{
   function_name = 'tempKey',
   callback = tempKey,
-  flags = { 'no-writes' }
+  flags = { 'no-writes' },
+  description = 'Generate a unique temporary key'
 }
 
 redis.register_function{
   function_name = 'countKeys',
   callback = countKeys,
-  flags = { 'no-writes' }
+  flags = { 'no-writes' },
+  description = 'Count number of keys and size of a pattern'
 } 
 
-redis.register_function('delall', delall )
+--redis.register_function('delall', delall )
+redis.register_function{
+  function_name = 'delall',
+  callback = delall,
+  description = 'Delete keys of a pattern'
+}
 
-redis.register_function('expireall', expireall )
+--redis.register_function('expireall', expireall )
+redis.register_function{
+  function_name = 'expireall',
+  callback = delall,
+  description = 'Expire keys of a pattern'
+}
 
-redis.register_function('zAddIncr', zAddIncr)
+--redis.register_function('zAddIncr', zAddIncr)
+redis.register_function{
+  function_name = 'zAddIncr',
+  callback = zAddIncr,
+  description = 'Add member to Sorted Set'
+}
 
 redis.register_function{
   function_name = 'zSumScore',
   callback = zSumScore,
-    flags = { 'no-writes' }
+  flags = { 'no-writes' },
+  description = 'Sum score of Sorted Set'
 }
 
 redis.register_function{
   function_name = 'scanTextChi',
   callback = scanTextChi,
-    flags = { 'no-writes' }
+  flags = { 'no-writes' },
+  description = 'Return Redis hashes matching a pattern and has a field which contains a value,'
 }
 
 
