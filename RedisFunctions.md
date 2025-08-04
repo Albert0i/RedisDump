@@ -3,6 +3,16 @@
 
 
 #### Prologue 
+```
+Forget what we won't,
+Accept what we don't,
+Challenge what we daren't. 
+
+Inward dread and anguish overcomes, 
+but not flesh and blood,  
+This is the end,
+all the same beginning of things. 
+```
 
 
 #### I. [Redis programmability](https://redis.io/docs/latest/develop/programmability/) (TL;DR)
