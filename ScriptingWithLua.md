@@ -249,6 +249,48 @@ redis> EVALSHA ffffffffffffffffffffffffffffffffffffffff 0
 
 **Script cache semantics** 
 
+> During normal operation, an application's scripts are meant to stay indefinitely in the cache (that is, until the server is restarted or the cache being flushed). The underlying reasoning is that the script cache contents of a well-written application are unlikely to grow continuously. Even large applications that use hundreds of cached scripts shouldn't be an issue in terms of cache memory usage.
+
+> The only way to flush the script cache is by explicitly calling the [SCRIPT FLUSH](https://redis.io/docs/latest/commands/script-flush/) command. Running the command will *completely flush* the scripts cache, removing all the scripts executed so far. Typically, this is only needed when the instance is going to be instantiated for another customer or application in a cloud environment.
+
+> Also, as already mentioned, restarting a Redis instance flushes the non-persistent script cache. However, from the point of view of the Redis client, there are only two ways to make sure that a Redis instance was not restarted between two different commands:
+
+- The connection we have with the server is persistent and was never closed so far.
+- The client explicitly checks the run_id field in the [INFO](https://redis.io/docs/latest/commands/info/) command to ensure the server was not restarted and is still the same process.
+
+> Practically speaking, it is much simpler for the client to assume that in the context of a given connection, cached scripts are guaranteed to be there unless the administrator explicitly invoked the [SCRIPT FLUSH](https://redis.io/docs/latest/commands/script-flush/) command. The fact that the user can count on Redis to retain cached scripts is semantically helpful in the context of pipelining.
+
+##### **The SCRIPT command**
+
+> The Redis [SCRIPT](https://redis.io/docs/latest/commands/script/) provides several ways for controlling the scripting subsystem. These are:
+
+- [SCRIPT FLUSH](https://redis.io/docs/latest/commands/script-flush/): this command is the only way to force Redis to flush the scripts cache. It is most useful in environments where the same Redis instance is reassigned to different uses. It is also helpful for testing client libraries' implementations of the scripting feature.
+
+- [SCRIPT EXISTS](https://redis.io/docs/latest/commands/script-exists/): given one or more SHA1 digests as arguments, this command returns an array of 1's and 0's. 1 means the specific SHA1 is recognized as a script already present in the scripting cache. 0's meaning is that a script with this SHA1 wasn't loaded before (or at least never since the latest call to [SCRIPT FLUSH](https://redis.io/docs/latest/commands/script-flush/)).
+
+- SCRIPT LOAD script: this command registers the specified script in the Redis script cache. It is a useful command in all the contexts where we want to ensure that [EVALSHA](https://redis.io/docs/latest/commands/evalsha/) doesn't not fail (for instance, in a pipeline or when called from a [MULTI](https://redis.io/docs/latest/commands/multi/)/[EXEC](https://redis.io/docs/latest/commands/exec/) [transaction](https://redis.io/docs/latest/develop/using-commands/transactions/), without the need to execute the script.
+
+- [SCRIPT KILL](https://redis.io/docs/latest/commands/script-kill/): this command is the only way to interrupt a long-running script (a.k.a slow script), short of shutting down the server. A script is deemed as slow once its execution's duration exceeds the configured [maximum execution time](https://redis.io/docs/latest/develop/programmability/#maximum-execution-time) threshold. The [SCRIPT KILL](https://redis.io/docs/latest/commands/script-kill/) command can be used only with scripts that did not modify the dataset during their execution (since stopping a read-only script does not violate the scripting engine's guaranteed atomicity).
+
+- [SCRIPT DEBUG](https://redis.io/docs/latest/commands/script-debug/): controls use of the built-in [Redis Lua scripts debugger](https://redis.io/docs/latest/develop/programmability/lua-debugging/).
+
+
+##### **Script replication**
+
+> In standalone deployments, a single Redis instance called *master* manages the entire database. A [clustered deployment](https://redis.io/docs/latest/operate/oss_and_stack/management/scaling/) has at least three masters managing the sharded database. Redis uses [replication](https://redis.io/docs/latest/operate/oss_and_stack/management/replication/) to maintain one or more replicas, or exact copies, for any given master.
+
+> Because scripts can modify the data, Redis ensures all write operations performed by a script are also sent to replicas to maintain consistency. There are two conceptual approaches when it comes to script replication:
+
+1. Verbatim replication: the master sends the script's source code to the replicas. Replicas then execute the script and apply the write effects. This mode can save on replication bandwidth in cases where short scripts generate many commands (for example, a *for* loop). However, this replication mode means that replicas redo the same work done by the master, which is wasteful. More importantly, it also requires [all write scripts to be deterministic](https://redis.io/docs/latest/develop/programmability/eval-intro/#scripts-with-deterministic-writes).
+
+2. Effects replication: only the script's data-modifying commands are replicated. Replicas then run the commands without executing any scripts. While potentially lengthier in terms of network traffic, this replication mode is deterministic by definition and therefore doesn't require special consideration.
+
+> Verbatim script replication was the only mode supported until Redis 3.2, in which effects replication was added. The *lua-replicate-commands* configuration directive and [redis.replicate_commands()](https://redis.io/docs/latest/develop/programmability/lua-api/#redis.replicate_commands) Lua API can be used to enable it.
+
+> In Redis 5.0, effects replication became the default mode. As of Redis 7.0, verbatim replication is no longer supported.
+
+**Replicating commands instead of scripts**
+
 
 
 
