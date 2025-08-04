@@ -309,8 +309,103 @@ redis> EVALSHA ffffffffffffffffffffffffffffffffffffffff 0
 
 - Lua does not export commands to access the system time or other external states.
 - Redis will block the script with an error if a script calls a Redis command able to alter the data set **after** a Redis random command like [RANDOMKEY](https://redis.io/docs/latest/commands/randomkey/), [SRANDMEMBER](https://redis.io/docs/latest/commands/srandmember/), [TIME](https://redis.io/docs/latest/commands/time/). That means that read-only scripts that don't modify the dataset can call those commands. Note that a *random command* does not necessarily mean a command that uses random numbers: any non-deterministic command is considered as a random command (the best example in this regard is the [TIME](https://redis.io/docs/latest/commands/time/) command).
-- In Redis version 4.0, commands that may return elements in random order, such as SMEMBERS (because Redis Sets are unordered), exhibit a different behavior when called from Lua, and undergo a silent lexicographical sorting filter before returning data to Lua scripts. So redis.call("SMEMBERS",KEYS[1]) will always return the Set elements in the same order, while the same command invoked by normal clients may return different results even if the key contains exactly the same elements. However, starting with Redis 5.0, this ordering is no longer performed because replicating effects circumvents this type of non-determinism. In general, even when developing for Redis 4.0, never assume that certain commands in Lua will be ordered, but instead rely on the documentation of the original command you call to see the properties it provides.
-- Lua's pseudo-random number generation function `math.random` is modified and always uses the same seed for every execution. This means that calling math.random will always generate the same sequence of numbers every time a script is executed (unless math.randomseed is used).
+- In Redis version 4.0, commands that may return elements in random order, such as [SMEMBERS](https://redis.io/docs/latest/commands/smembers/) (because Redis Sets are *unordered*), exhibit a different behavior when called from Lua, and undergo a silent lexicographical sorting filter before returning data to Lua scripts. So `redis.call("SMEMBERS",KEYS[1])` will always return the Set elements in the same order, while the same command invoked by normal clients may return different results even if the key contains exactly the same elements. However, starting with Redis 5.0, this ordering is no longer performed because replicating effects circumvents this type of non-determinism. In general, even when developing for Redis 4.0, never assume that certain commands in Lua will be ordered, but instead rely on the documentation of the original command you call to see the properties it provides.
+- Lua's pseudo-random number generation function `math.random` is modified and always uses the same seed for every execution. This means that calling [math.random](https://redis.io/docs/latest/develop/programmability/lua-api/#runtime-libraries) will always generate the same sequence of numbers every time a script is executed (unless `math.randomseed` is used).
+
+> All that said, you can still use commands that write and random behavior with a simple trick. Imagine that you want to write a Redis script that will populate a list with N random integers.
+
+> The initial implementation in Ruby could look like this:
+
+```
+require 'rubygems'
+require 'redis'
+
+r = Redis.new
+
+RandomPushScript = <<EOF
+    local i = tonumber(ARGV[1])
+    local res
+    while (i > 0) do
+        res = redis.call('LPUSH',KEYS[1],math.random())
+        i = i-1
+    end
+    return res
+EOF
+
+r.del(:mylist)
+puts r.eval(RandomPushScript,[:mylist],[10,rand(2**32)])
+```
+
+> Every time this code runs, the resulting list will have exactly the following elements:
+
+```
+redis> LRANGE mylist 0 -1
+ 1) "0.74509509873814"
+ 2) "0.87390407681181"
+ 3) "0.36876626981831"
+ 4) "0.6921941534114"
+ 5) "0.7857992587545"
+ 6) "0.57730350670279"
+ 7) "0.87046522734243"
+ 8) "0.09637165539729"
+ 9) "0.74990198051087"
+10) "0.17082803611217"
+```
+
+> To make the script both deterministic and still have it produce different random elements, we can add an extra argument to the script that's the seed to Lua's pseudo-random number generator. The new script is as follows:
+
+```
+RandomPushScript = <<EOF
+    local i = tonumber(ARGV[1])
+    local res
+    math.randomseed(tonumber(ARGV[2]))
+    while (i > 0) do
+        res = redis.call('LPUSH',KEYS[1],math.random())
+        i = i-1
+    end
+    return res
+EOF
+
+r.del(:mylist)
+puts r.eval(RandomPushScript,1,:mylist,10,rand(2**32))
+```
+
+> What we are doing here is sending the seed of the PRNG as one of the arguments. The script output will always be the same given the same arguments (our requirement) but we are changing one of the arguments at every invocation, generating the random seed client-side. The seed will be propagated as one of the arguments both in the replication link and in the Append Only File, guaranteeing that the same changes will be generated when the AOF is reloaded or when the replica processes the script.
+
+> Note: an important part of this behavior is that the PRNG that Redis implements as math.random and math.randomseed is guaranteed to have the same output regardless of the architecture of the system running Redis. 32-bit, 64-bit, big-endian and little-endian systems will all produce the same output.
+
+##### **Debugging Eval scripts**
+
+> When memory usage in Redis exceeds the maxmemory limit, the first write command encountered in the script that uses additional memory will cause the script to abort (unless [redis.pcall](https://redis.io/docs/latest/develop/programmability/lua-api/#redis.pcall) was used).
+
+> However, an exception to the above is when the script's first write command does not use additional memory, as is the case with (for example, [DEL](https://redis.io/docs/latest/commands/del/) and [LREM](https://redis.io/docs/latest/commands/lrem/)). In this case, Redis will allow all commands in the script to run to ensure atomicity. If subsequent writes in the script consume additional memory, Redis' memory usage can exceed the threshold set by the maxmemory configuration directive.
+
+> Another scenario in which a script can cause memory usage to cross the maxmemory threshold is when the execution begins when Redis is slightly below maxmemory, so the script's first write command is allowed. As the script executes, subsequent write commands consume more memory leading to the server using more RAM than the configured maxmemory directive.
+
+> In those scenarios, you should consider setting the maxmemory-policy configuration directive to any values other than `noeviction`. In addition, Lua scripts should be as fast as possible so that eviction can kick in between executions.
+
+> Note that you can change this behaviour by using flags
+
+#### **Eval flags**
+
+> Normally, when you run an Eval script, the server does not know how it accesses the database. By default, Redis assumes that all scripts read and write data. However, starting with Redis 7.0, there's a way to declare flags when creating a script in order to tell Redis how it should behave.
+
+> The way to do that is by using a Shebang statement on the first line of the script like so:
+
+```
+#!lua flags=no-writes,allow-stale
+local x = redis.call('get','x')
+return x
+```
+
+> Note that as soon as Redis sees the #! comment, it'll treat the script as if it declares flags, even if no flags are defined, it still has a different set of defaults compared to a script without a #! line.
+
+> Another difference is that scripts without #! can run commands that access keys belonging to different cluster hash slots, but ones with #! inherit the default flags, so they cannot.
+
+> Please refer to [Script flags](https://redis.io/docs/latest/develop/programmability/lua-api/#script_flags) to learn about the various scripts and the defaults.
+
+---
+
 
 
 
