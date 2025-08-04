@@ -21,8 +21,32 @@ const shaRo = await loadScript('./src/lua/zSumScore.lua')
 
 await redis.evalSha(sha, { 
     keys: [ 'testz' ], 
-    args: ['a', 'b', 'c', 'd', 'e', 'f' ] 
+    arguments: [ 'a', 'b', 'c', 'd', 'e', 'f' ] 
 })
+await redis.evalSha(sha, { 
+    keys: [ 'testz' ], 
+    arguments: [ 'a', 'b', 'c', 'd', 'e' ] 
+})
+await redis.evalSha(sha, { 
+    keys: [ 'testz' ], 
+    arguments: [ 'a', 'b', 'c', 'd' ] 
+})
+await redis.evalSha(sha, { 
+    keys: [ 'testz' ], 
+    arguments: [ 'a', 'b', 'c' ] 
+})
+await redis.evalSha(sha, { 
+    keys: [ 'testz' ], 
+    arguments: [ 'a', 'b' ] 
+})
+await redis.evalSha(sha, { 
+    keys: [ 'testz' ], 
+    arguments: [ 'a' ] 
+})
+console.log(await redis.evalShaRo(shaRo, { 
+    keys: [ 'testz' ], 
+    arguments: [ ] 
+}))
 
 await redis.close()
 process.exit(0)

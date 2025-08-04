@@ -17,7 +17,7 @@ async function loadScript(path_to_script) {
 await redis.connect()
 
 const sha = await loadScript('./src/lua/ver.lua')
-console.log(await redis.evalShaRo(sha, { keys: [], args: [] }))
+console.log(await redis.evalShaRo(sha, { keys: [], arguments: [] }))
 
 await redis.close()
 process.exit(0)
