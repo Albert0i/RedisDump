@@ -291,8 +291,26 @@ redis> EVALSHA ffffffffffffffffffffffffffffffffffffffff 0
 
 **Replicating commands instead of scripts**
 
+> **Note**: Starting with Redis 5.0, script replication is by default effect-based rather than verbatim. In Redis 7.0, verbatim script replication had been removed entirely. The following section only applies to versions lower than Redis 7.0 when not using effect-based script replication.
 
+> An important part of scripting is writing scripts that only change the database in a deterministic way. Scripts executed in a Redis instance are, by default until version 5.0, propagated to replicas and to the AOF file by sending the script itself -- not the resulting commands. Since the script will be re-run on the remote host (or when reloading the AOF file), its changes to the database must be reproducible.
 
+> The reason for sending the script is that it is often much faster than sending the multiple commands that the script generates. If the client is sending many scripts to the master, converting the scripts into individual commands for the replica / AOF would result in too much bandwidth for the replication link or the Append Only File (and also too much CPU since dispatching a command received via the network is a lot more work for Redis compared to dispatching a command invoked by Lua scripts).
+
+> Normally replicating scripts instead of the effects of the scripts makes sense, however not in all the cases. So starting with Redis 3.2, the scripting engine is able to, alternatively, replicate the sequence of write commands resulting from the script execution, instead of replication the script itself.
+
+> In this section, we'll assume that scripts are replicated verbatim by sending the whole script. Let's call this replication mode **verbatim scripts replication**.
+
+> The main drawback with the *whole scripts replication* approach is that scripts are required to have the following property: the script **always must** execute the same Redis *write* commands with the same arguments given the same input data set. Operations performed by the script can't depend on any hidden (non-explicit) information or state that may change as the script execution proceeds or between different executions of the script. Nor can it depend on any external input from I/O devices.
+
+> Acts such as using the system time, calling Redis commands that return random values (e.g., [RANDOMKEY](https://redis.io/docs/latest/commands/randomkey/)), or using Lua's random number generator, could result in scripts that will not evaluate consistently.
+
+> To enforce the deterministic behavior of scripts, Redis does the following:
+
+- Lua does not export commands to access the system time or other external states.
+- Redis will block the script with an error if a script calls a Redis command able to alter the data set **after** a Redis random command like [RANDOMKEY](https://redis.io/docs/latest/commands/randomkey/), [SRANDMEMBER](https://redis.io/docs/latest/commands/srandmember/), [TIME](https://redis.io/docs/latest/commands/time/). That means that read-only scripts that don't modify the dataset can call those commands. Note that a *random command* does not necessarily mean a command that uses random numbers: any non-deterministic command is considered as a random command (the best example in this regard is the [TIME](https://redis.io/docs/latest/commands/time/) command).
+- In Redis version 4.0, commands that may return elements in random order, such as SMEMBERS (because Redis Sets are unordered), exhibit a different behavior when called from Lua, and undergo a silent lexicographical sorting filter before returning data to Lua scripts. So redis.call("SMEMBERS",KEYS[1]) will always return the Set elements in the same order, while the same command invoked by normal clients may return different results even if the key contains exactly the same elements. However, starting with Redis 5.0, this ordering is no longer performed because replicating effects circumvents this type of non-determinism. In general, even when developing for Redis 4.0, never assume that certain commands in Lua will be ordered, but instead rely on the documentation of the original command you call to see the properties it provides.
+- Lua's pseudo-random number generation function `math.random` is modified and always uses the same seed for every execution. This means that calling math.random will always generate the same sequence of numbers every time a script is executed (unless math.randomseed is used).
 
 
 
