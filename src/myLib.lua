@@ -71,8 +71,7 @@ end
 local function timestamp(KEYS, ARGV) 
   local offset = tonumber(KEYS[1]) or 8 -- UTC+8
   local time = redis.call('TIME')
-  local timestampPart = time[1]
-  local microsecondsPart = time[2]
+  local timestampPart, microsecondsPart = unpack(time)
 
   return formatTS({ timestampPart + (microsecondsPart / 1000000), offset }) 
 end
@@ -119,8 +118,7 @@ end
 local function tempKey(KEYS, ARGV)
   local prefix = "temp:"
   local ts = redis.call("TIME")
-  local timestamp = ts[1]
-  local millis = ts[2]
+  local timestamp, millis = unpack(ts)
 
   return prefix .. timestamp .. ":" .. millis 
 end
