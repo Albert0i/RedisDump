@@ -112,6 +112,19 @@ local function consoleLog(KEYS, ARGV)
   return 'Ok'
 end
 
+-- Generate a unique temporary key
+-- No parameter is required:
+-- Example usage: FCALL_RO TEMPKEY 0
+-- Output: "temp:1754275106:14"
+local function tempKey(KEYS, ARGV)
+  local prefix = "temp:"
+  local ts = redis.call("TIME")
+  local timestamp = ts[1]
+  local millis = ts[2]
+
+  return prefix .. timestamp .. ":" .. millis 
+end
+
 -- Count number of keys and size of a pattern
 -- Optional:
 --      KEYS[1] = Prefix pattern (e.g., "user:*"), * if unspecified
@@ -410,6 +423,12 @@ redis.register_function{
 redis.register_function{
   function_name = 'consoleLog',
   callback = consoleLog,
+  flags = { 'no-writes' }
+}
+
+redis.register_function{
+  function_name = 'tempKey',
+  callback = tempKey,
   flags = { 'no-writes' }
 }
 
