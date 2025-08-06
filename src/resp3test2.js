@@ -5,23 +5,7 @@ import { redis } from './redis/redis.js'
 */
 const script = `
     redis.setresp(3)
-    local mykey = 'some:temp:key'
-    -- local myobj = { "name", "iong_dev", "status", "active", "score", 98" } 
-    local myobj = {} 
-    local myreturn = {}
-    
-    table.insert(myobj, "name")
-    table.insert(myobj, "iong_dev")
-    table.insert(myobj, "status")
-    table.insert(myobj, "active")
-    table.insert(myobj, "score")
-    table.insert(myobj, 98)
-    
-    redis.call('HSET', mykey, unpack(myobj))
-    myreturn = redis.call('HGETALL', mykey)
-    redis.call('UNLINK', mykey)
-
-    return myreturn
+    return { map = { name = "iong_dev", status = "active", score = 98 } }
   `
 await redis.connect()
 

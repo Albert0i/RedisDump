@@ -9,8 +9,7 @@ const script = `
   `
 await redis.connect()
 
-await redis.sendCommand(['HELLO', '3']);
-console.log(await redis.sendCommand(['HELLO']));
+console.log(await redis.sendCommand(['HELLO', '3']));
 
 const result = await redis.eval(script, { keys: [], arguments: [] })
 const data = JSON.parse(result)
