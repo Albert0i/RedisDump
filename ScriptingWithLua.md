@@ -532,130 +532,77 @@ For those who don't want to crawl through official documentations:
 - [Scripting with Lua](https://redis.io/docs/latest/develop/programmability/eval-intro/) describes Lua Scripting in Redis in general.
 - [Redis functions](https://redis.io/docs/latest/develop/programmability/functions-intro/) describes the new Redis Functions features. 
 
-Redis Functions are functions written in Lua. The syntax for function definition is: 
-```
-	function ::= function funcbody
-	funcbody ::= `(´ [parlist] `)´ block end
-```
+Redis, as a memory first multi-model database, does provide means to craft code running on server-side. [Lua](https://en.wikipedia.org/wiki/Lua) is a small language for embedded devices. Most developers do not familiar with Lua, I think, but it's not difficult to learn. 
 
-The following syntactic sugar simplifies function definitions:
+To be in line with the idea of **Quick Start**, you should first pen down what and how you want you want and how to fulfil, ask HIM. I mean AI, to create the base code for you, that will save you in most cases. 
+
+To execute a Lua script, either from source or cache; either read/write or read only, take similar form of parameters: 
 ```
-	stat ::= function funcname funcbody
-	stat ::= local function Name funcbody
-	funcname ::= Name {`.´ Name} [`:´ Name]
+EVAL script numkeys [key [key ...]] [arg [arg ...]]
 ```
 
-They are loaded into Redis and survive a server reboot and therefore provide better way to share code among Redis clients. Redis Functions can be invoked via [FCALL](https://redis.io/docs/latest/commands/fcall/) or [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) depending on whether the functions perform read/write or read only operations. The use of [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) offers subtle advantages and you *should* always stick to it whenever possible. If you are already familiar Lua Script, converting existing scripts into Redis Functions is only a couple of steps. 
-
-Code template for Redis function: 
+The `numkeys` matters, for example in the following script: 
 ```
-#!lua name=mylib
-
-local function myfunc(KEYS, ARGV)
-  <place your lua script here>
-end
-
-redis.register_function('myfunc', myfunc )
+EVAL "return { KEYS=KEYS, ARGV=ARGV }" 0 a b c d e f
 ```
 
-Code template for Redis function with **no-writes** [flag](https://redis.io/docs/latest/develop/programmability/lua-api/#script_flags):
+Repeatedly executing this script but keeps changing `numkeys` from 0 to 6 will show you how `numkeys` affects `KEYS` and `ARGV`, the Global variables. 
+
+![alt KEYS-ARGV](img/KEYS-ARGV.JPG)
+
+It is recommended to use `KEYS` for keys to be operated and `ARGV` for values to accomplish the operation. 
+
+Use `INFO MEMORY` to check memory consumption: 
 ```
-#!lua name=mylib
-
-local function myfunc(KEYS, ARGV)
-  <place your lua script here>
-end
-
-redis.register_function{
-  function_name = 'myfunc',
-  callback = myfunc,
-  flags = { 'no-writes' }
-} 
-```
-
-The first line states that we are using Lua as scripting engine and name of the library. I *deliberately* opt `KEYS` for keys arguments and `ARGV` for regular arguments to comply the naming convention in Lua Script. Functions of read/write and read only bear different syntax. You can create a file mixed with read write and read only functions. All functions of a library have to loaded in one go. 
-
-`loader.js`
-```
-import { redis } from './redis/redis.js'
-import { readFile } from 'fs/promises';
-
-/*
-   main 
-*/
-await redis.connect();
-
-// Load Lua function from file
-const luaScript = await readFile('./src/myLib.lua', 'utf8');
-console.log(await redis.sendCommand(['FUNCTION', 'LOAD', 'REPLACE', luaScript]), 'loaded');
-
-await redis.close();
-process.exit(0)
+INFO MEMORY
+. . . 
+used_memory_scripts_eval:31992
+number_of_cached_scripts:50
+number_of_functions:12
+number_of_libraries:1
+. . . 
 ```
 
-Run command to load Redis Functions with: 
+![alt info-memory](img/info-memory.JPG)
+
+And use `SCRIPT FLUSH` to wipe all out. 
+
+Not every runtime functions can be used, even though it is present in official documentations: 
 ```
-node src/loader.js
-mylib loaded
+> EVAL "return os.clock()" 0
+"ERR user_script:1: Script attempted to access nonexistent global variable 'os' script: ea58cfad299460ea863f576834104a675e48c28c, on @user_script:1."
 ```
 
-And check with: 
+Debuging Lua script is difficult, all the while you may feel necessary to print out something to check for. In this case you may need:
 ```
-> FUNCTION LIST LIBRARYNAME mylib
-1) 1) "library_name"
-   2) "mylib"
-   3) "engine"
-   4) "LUA"
-   5) "functions"
-   6) 1) 1) "name"
-         2) "countKeys"
-         3) "description"
-         4) "null"
-         5) "flags"
-         6) 1) "no-writes"
-      2) 1) "name"
-         2) "delall"
-         3) "description"
-         4) "null"
-         5) "flags"
-         6) (empty list or set)
-      3) 1) "name"
-         2) "zAddIncr"
-         3) "description"
-         4) "null"
-         5) "flags"
-         6) (empty list or set)
-      4) 1) "name"
-         2) "ver"
-         3) "description"
-         4) "null"
-         5) "flags"
-         6) 1) "no-writes"
-      5) 1) "name"
-         2) "scanTextChi"
-         3) "description"
-         4) "null"
-         5) "flags"
-         6) 1) "no-writes"
-      6) 1) "name"
-         2) "libs"
-         3) "description"
-         4) "null"
-         5) "flags"
-         6) 1) "no-writes"
-      7) 1) "name"
-         2) "toFix"
-         3) "description"
-         4) "null"
-         5) "flags"
-         6) 1) "no-writes"
-      8) 1) "name"
-         2) "zSumScore"
-         3) "description"
-         4) "null"
-         5) "flags"
-         6) 1) "no-writes"
+> EVAL "return redis.log(redis.LOG_NOTICE, 'This is a notice')" 0
+(nil)
 ```
+
+This is possible provided that `redis.conf` is properly set up and you have access to `redis.log` file. 
+`redis.conf`
+```
+# Specify the server verbosity level.
+# This can be one of:
+# debug (a lot of information, useful for development/testing)
+# verbose (many rarely useful info, but not a mess like the debug level)
+# notice (moderately verbose, what you want in production probably)
+# warning (only very important / critical messages are logged)
+# nothing (nothing is logged)
+loglevel notice
+
+# Specify the log file name. Also the empty string can be used to force
+# Redis to log on the standard output. Note that if you use standard
+# output for logging but daemonize, logs will be sent to /dev/null
+logfile "C:\\redis\\redis.log"
+```
+
+`redis.log`
+```
+[003228] 06 Aug 16:19:01.991 * This is a notice
+```
+
+Please refer to [Redis configuration](https://redis.io/docs/latest/operate/oss_and_stack/management/config/) for complete reference. 
 
 Done!
 
