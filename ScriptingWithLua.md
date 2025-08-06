@@ -257,7 +257,7 @@ redis> EVALSHA ffffffffffffffffffffffffffffffffffffffff 0
 > Also, as already mentioned, restarting a Redis instance flushes the non-persistent script cache. However, from the point of view of the Redis client, there are only two ways to make sure that a Redis instance was not restarted between two different commands:
 
 - The connection we have with the server is persistent and was never closed so far.
-- The client explicitly checks the run_id field in the [INFO](https://redis.io/docs/latest/commands/info/) command to ensure the server was not restarted and is still the same process.
+- The client explicitly checks the `run_id` field in the [INFO](https://redis.io/docs/latest/commands/info/) command to ensure the server was not restarted and is still the same process.
 
 > Practically speaking, it is much simpler for the client to assume that in the context of a given connection, cached scripts are guaranteed to be there unless the administrator explicitly invoked the [SCRIPT FLUSH](https://redis.io/docs/latest/commands/script-flush/) command. The fact that the user can count on Redis to retain cached scripts is semantically helpful in the context of pipelining.
 
@@ -387,7 +387,7 @@ puts r.eval(RandomPushScript,1,:mylist,10,rand(2**32))
 
 > Note that you can change this behaviour by using flags
 
-#### **Eval flags**
+##### **Eval flags**
 
 > Normally, when you run an Eval script, the server does not know how it accesses the database. By default, Redis assumes that all scripts read and write data. However, starting with Redis 7.0, there's a way to declare flags when creating a script in order to tell Redis how it should behave.
 
@@ -914,5 +914,13 @@ EVAL "return { KEYS=KEYS, ARGV=ARGV }" 0 a b c d e f
 
 ```
 INFO MEMORY
+. . . 
+used_memory_scripts_eval:31992
+number_of_cached_scripts:50
+number_of_functions:12
+number_of_libraries:1
+. . . 
+```
+```
 SCRIPT FLUSH
 ```
