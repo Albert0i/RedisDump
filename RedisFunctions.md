@@ -6,12 +6,13 @@
 ```
 Forget what we won't,
 Accept what we don't,
-Challenge what we daren't. 
+Challenge what we daren't,
+Besige what we can't.  
 
-Inward dread and anguish overcomes, 
+Inward dread and anguish overcome, 
 but not flesh and blood,  
 This is the end,
-all the same beginning of things. 
+and all the same beginning of life. 
 ```
 
 
