@@ -610,6 +610,7 @@ Debuging Lua script is difficult, all the while you may feel necessary to print 
 ```
 
 This is possible provided that `redis.conf` is properly set up and you have access to `redis.log` file. 
+
 `redis.conf`
 ```
 # Specify the server verbosity level.
