@@ -486,6 +486,89 @@ redis> FCALL_RO my_hlastmodified 1 myhash
 
 > For the complete documentation flags, please refer to [Script flags](https://redis.io/docs/latest/develop/programmability/lua-api/#script_flags).
 
+##### [Script flags](https://redis.io/docs/latest/develop/programmability/lua-api/#script_flags)
+
+> **Important**: Use script flags with care, which may negatively impact if misused. Note that the default for Eval scripts are different than the default for functions that are mentioned below, see [Eval Flags](https://redis.io/docs/latest/develop/programmability/eval-intro/#eval-flags)
+
+> When you register a function or load an Eval script, the server does not know how it accesses the database. By default, Redis assumes that all scripts read and write data. This results in the following behavior:
+
+- They can read and write data.
+- They can run in cluster mode, and are not able to run commands accessing keys of different hash slots.
+- Execution against a stale replica is denied to avoid inconsistent reads.
+- Execution under low memory is denied to avoid exceeding the configured threshold.
+
+> You can use the following flags and instruct the server to treat the scripts' execution differently:
+
+- `no-writes`: this flag indicates that the script only reads data but never writes.
+
+> By default, Redis will deny the execution of flagged scripts (Functions and Eval scripts with [shebang](https://redis.io/docs/latest/develop/programmability/eval-intro/#eval-flags)) against read-only replicas, as they may attempt to perform writes. Similarly, the server will not allow calling scripts with [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) / [EVAL_RO](https://redis.io/docs/latest/commands/eval_ro/). Lastly, when data persistence is at risk due to a disk error, execution is blocked as well.
+
+> Using this flag allows executing the script:
+
+- With [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) / [EVAL_RO](https://redis.io/docs/latest/commands/eval_ro/)
+- On read-only replicas.
+- Even if there's a disk error (Redis is unable to persist so it rejects writes).
+- When over the memory limit since it implies the script doesn't increase memory consumption (see `allow-oom` below)
+
+> However, note that the server will return an error if the script attempts to call a write command. Also note that currently [PUBLISH](https://redis.io/docs/latest/commands/publish/), [SPUBLISH](https://redis.io/docs/latest/commands/spublish/) and [PFCOUNT](https://redis.io/docs/latest/commands/pfcount/) are also considered write commands in scripts, because they could attempt to propagate commands to replicas and AOF file.
+
+> For more information please refer to [Read-only scripts](https://redis.io/docs/latest/develop/programmability/#read-only_scripts)
+
+- `allow-oom`: use this flag to allow a script to execute when the server is out of memory (OOM).
+
+> Unless used, Redis will deny the execution of flagged scripts (Functions and Eval scripts with [shebang](https://redis.io/docs/latest/develop/programmability/eval-intro/#eval-flags)) when in an OOM state. Furthermore, when you use this flag, the script can call any Redis command, including commands that aren't usually allowed in this state. Specifying no-writes or using [FCALL_RO](https://redis.io/docs/latest/commands/fcall_ro/) / [EVAL_RO](https://redis.io/docs/latest/commands/eval_ro/) also implies the script can run in OOM state (without specifying `allow-oom`)
+
+- `allow-stale`: a flag that enables running the flagged scripts (Functions and Eval scripts with [shebang](https://redis.io/docs/latest/develop/programmability/eval-intro/#eval-flags)) against a stale replica when the replica-serve-stale-data config is set to no .
+
+> Redis can be set to prevent data consistency problems from using old data by having stale replicas return a runtime error. For scripts that do not access the data, this flag can be set to allow stale Redis replicas to run the script. Note however that the script will still be unable to execute any command that accesses stale data.
+
+- `no-cluster`: the flag causes the script to return an error in Redis cluster mode.
+
+> Redis allows scripts to be executed both in standalone and cluster modes. Setting this flag prevents executing the script against nodes in the cluster.
+
+- `allow-cross-slot-keys`: The flag that allows a script to access keys from multiple slots.
+
+> Redis typically prevents any single command from accessing keys that hash to multiple slots. This flag allows scripts to break this rule and access keys within the script that access multiple slots. Declared keys to the script are still always required to hash to a single slot. Accessing keys from multiple slots is discouraged as applications should be designed to only access keys from a single slot at a time, allowing slots to move between Redis servers.
+
+> This flag has no effect when cluster mode is disabled.
+
+> Please refer to [Function Flags](https://redis.io/docs/latest/develop/programmability/functions-intro/#function-flags) and [Eval Flags](https://redis.io/docs/latest/develop/programmability/eval-intro/#eval-flags) for a detailed example.
+
+##### **redis.register_function**
+
+- Since version: 7.0.0
+- Available in scripts: no
+- Available in functions: yes
+
+> This function is only available from the context of the [FUNCTION LOAD](https://redis.io/docs/latest/commands/function-load/) command. When called, it registers a function to the loaded library. The function can be called either with positional or named arguments.
+
+> positional arguments: `redis.register_function(name, callback)` 
+
+> The first argument to `redis.register_function` is a Lua string representing the function name. The second argument to `redis.register_function` is a Lua function.
+
+> Usage example:
+
+```
+redis> FUNCTION LOAD "#!lua name=mylib\n redis.register_function('noop', function() end)"
+```
+
+> Named arguments: `redis.register_function{function_name=name, callback=callback, flags={flag1, flag2, ..}, description=description}
+` 
+> The named arguments variant accepts the following arguments:
+
+- `function_name`: the function's name.
+- `callback`: the function's callback.
+- `flags`: an array of strings, each a function flag (optional).
+- `description`: function's description (optional).
+
+> Both `function_name` and `callback` are mandatory.
+
+Usage example:
+
+```
+redis> FUNCTION LOAD "#!lua name=mylib\n redis.register_function{function_name='noop', callback=function() end, flags={ 'no-writes' }, description='Does nothing'}"
+```
+
 
 #### III. A Quick Start Guide 
 For those who don't want to crawl through official documentations: 
