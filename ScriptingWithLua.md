@@ -197,7 +197,7 @@ redis> EVAL "return { KEYS[1], KEYS[2], ARGV[1], ARGV[2], ARGV[3] }" 2 key1 key2
 
 > It is possible to call Redis commands from a Lua script either via [redis.call()](https://redis.io/docs/latest/develop/programmability/lua-api/#redis.call) or [redis.pcall()](https://redis.io/docs/latest/develop/programmability/lua-api/#redis.pcall).
 
-> The two are nearly identical. Both execute a Redis command along with its provided arguments, if these represent a well-formed command. However, the difference between the two functions lies in the manner in which runtime errors (such as syntax errors, for example) are handled. Errors raised from calling redis.call() function are returned directly to the client that had executed it. Conversely, errors encountered when calling the redis.pcall() function are returned to the script's execution context instead for possible handling.
+> The two are nearly identical. Both execute a Redis command along with its provided arguments, if these represent a well-formed command. However, the difference between the two functions lies in the manner in which runtime errors (such as syntax errors, for example) are handled. Errors raised from calling `redis.call()` function are returned directly to the client that had executed it. Conversely, errors encountered when calling the `redis.pcall()` function are returned to the script's execution context instead for possible handling.
 
 > For example, consider the following:
 
@@ -246,7 +246,7 @@ redis> EVALSHA ffffffffffffffffffffffffffffffffffffffff 0
 
 > Special care should be given executing [EVALSHA](https://redis.io/docs/latest/commands/evalsha/) in the context of a [pipelined request](https://redis.io/docs/latest/develop/using-commands/pipelining/). The commands in a pipelined request run in the order they are sent, but other clients' commands may be interleaved for execution between these. Because of that, the NOSCRIPT error can return from a pipelined request but can't be handled.
 
-> Therefore, a client library's implementation should revert to using plain [EVAL](https://redis.io/docs/latest/commands/eval/) of parameterized in the context of a pipeline.
+> **Therefore, a client library's implementation should revert to using plain [EVAL](https://redis.io/docs/latest/commands/eval/) of parameterized in the context of a pipeline.**
 
 **Script cache semantics** 
 
@@ -879,3 +879,40 @@ FUNCTION <subcommand> [<arg> [value] [opt] ...]. Subcommands are:
 
 
 ### EOF (2025/08/01)
+
+
+[Redis configuration](https://redis.io/docs/latest/operate/oss_and_stack/management/config/)
+`redis.conf`
+```
+# Specify the server verbosity level.
+# This can be one of:
+# debug (a lot of information, useful for development/testing)
+# verbose (many rarely useful info, but not a mess like the debug level)
+# notice (moderately verbose, what you want in production probably)
+# warning (only very important / critical messages are logged)
+# nothing (nothing is logged)
+loglevel notice
+
+# Specify the log file name. Also the empty string can be used to force
+# Redis to log on the standard output. Note that if you use standard
+# output for logging but daemonize, logs will be sent to /dev/null
+logfile ""
+```
+```
+> EVAL "return redis.log(redis.LOG_NOTICE, 'This is a notice')" 0
+(nil)
+```
+
+```
+> EVAL "return os.clock()" 0
+"ERR user_script:1: Script attempted to access nonexistent global variable 'os' script: ea58cfad299460ea863f576834104a675e48c28c, on @user_script:1."
+```
+
+```
+EVAL "return { KEYS=KEYS, ARGV=ARGV }" 0 a b c d e f
+```
+
+```
+INFO MEMORY
+SCRIPT FLUSH
+```
