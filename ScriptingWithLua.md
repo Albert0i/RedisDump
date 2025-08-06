@@ -595,7 +595,7 @@ number_of_libraries:1
 
 ![alt info-memory](img/info-memory.JPG)
 
-And use `SCRIPT FLUSH` to wipe all out. 
+And use `SCRIPT FLUSH` to wipe them out. 
 
 Not every runtime functions can be used, even though it is present in official documentations: 
 ```
