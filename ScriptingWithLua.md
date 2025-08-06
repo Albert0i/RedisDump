@@ -441,8 +441,6 @@ return x
 
 > Please refer to [Script flags](https://redis.io/docs/latest/develop/programmability/lua-api/#script_flags) to learn about the various scripts and the defaults.
 
----
-
 ##### [Script flags](https://redis.io/docs/latest/develop/programmability/lua-api/#script_flags)
 
 > **Important**: Use script flags with care, which may negatively impact if misused. Note that the default for Eval scripts are different than the default for functions that are mentioned below, see [Eval Flags](https://redis.io/docs/latest/develop/programmability/eval-intro/#eval-flags)
