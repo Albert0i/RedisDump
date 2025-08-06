@@ -536,6 +536,36 @@ Redis, as a memory first multi-model database, does provide means to craft code 
 
 To be in line with the idea of **Quick Start**, you should first pen down what and how you want you want and how to fulfil, ask HIM. I mean AI, to create the base code for you, that will save you in most cases. 
 
+`zAddIncr.lua`
+```
+-- KEYS[1] = sorted set key
+-- ARGV[1] = member name
+
+local added = redis.call('ZADD', KEYS[1], 'NX', 1, ARGV[1])
+
+if added == 0 then
+  -- Member existed, increment score
+  return redis.call('ZINCRBY', KEYS[1], 1, ARGV[1])
+else
+  -- Member was added with initial score of 1
+  return 1
+end
+```
+
+`zSumScore.lua`
+```
+-- KEYS[1] = sorted set key
+
+local total = 0
+local members = redis.call('ZRANGE', KEYS[1], 0, -1, 'WITHSCORES')
+
+for i = 2, #members, 2 do
+  total = total + tonumber(members[i])
+end
+
+return total
+```
+
 To execute a Lua script, either from source or cache; either read/write or read only, take similar form of parameters: 
 ```
 EVAL script numkeys [key [key ...]] [arg [arg ...]]
