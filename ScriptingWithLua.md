@@ -639,173 +639,97 @@ Done!
 
 
 #### IV. Example usage
-##### **Really trivial things**
-To get the Redis Version: 
+`script1.js`
 ```
-> FCALL_RO VER 0
-"8.0.2"
-```
+import fs from 'fs';
+import path from 'path';
+import { redis } from './redis/redis.js'
 
-To round up a number to a number of decimal place: 
-```
-> FCALL_RO TOFIX 2 123.456 2
-"123.46"
+async function loadScript(path_to_script) {
+    // Absolute or relative path to your file
+    const filePath = path.resolve(path_to_script);
+    // Read the contents as a string
+    const fileContents = fs.readFileSync(filePath, 'utf-8');
 
-> FCALL_RO TOFIX 1 123.456
-"123.46"
-```
+    return await redis.scriptLoad(fileContents);
+} 
 
-##### **Utility functions**
-Sometimes it is necessary to check number of keys of a pattern and it's size: 
-```
-> FCALL_RO COUNTKEYS 1 DONGDICT:*
-1) "28792"
-2) "32.73M"
+/*
+   main 
+*/
+await redis.connect()
 
-> FCALL_RO COUNTKEYS 1 DIRINDEX:*
-1) "31009"
-2) "25.07M"
-```
+const sha = await loadScript('./src/lua/ver.lua')
+console.log(await redis.evalShaRo(sha, { keys: [], arguments: [] }))
 
-Sometimes it is necessary to remove keys of a pattern: 
-```
-> FCALL DELALL 1 temp:*
-3
-
-> FCALL DELALL 1 cache:*
-12
+await redis.close()
+process.exit(0)
 ```
 
-You can do something like: 
+`script2.js`
 ```
-DELETE FROM users; 
-```
+import fs from 'fs';
+import path from 'path';
+import { redis } from './redis/redis.js'
 
-##### **Extension to underlaying Data Structures**
-Set, being the best candidate for data deduplication, sometimes it is convenient to keep the their number of  occurrence also. Every time a member is added to Sorted Set, it's score is increased by one: 
-```
-> FCALL ZADDINCR 1 testz a b c d e f 
-(integer) 6
+async function loadScript(path_to_script) {
+    // Absolute or relative path to your file
+    const filePath = path.resolve(path_to_script);
+    // Read the contents as a string
+    const fileContents = fs.readFileSync(filePath, 'utf-8');
 
-> FCALL ZADDINCR 1 testz a b c d e
-(integer) 5
+    return await redis.scriptLoad(fileContents);
+} 
 
-> FCALL ZADDINCR 1 testz a b c d
-(integer) 4
+/*
+   main 
+*/
+await redis.connect()
 
-> FCALL ZADDINCR 1 testz a b c
-(integer) 3
+const sha = await loadScript('./src/lua/zAddIncr.lua')
+const shaRo = await loadScript('./src/lua/zSumScore.lua')
 
-> FCALL ZADDINCR 1 testz a b
-(integer) 2
+await redis.evalSha(sha, { 
+    keys: [ 'testz' ], 
+    arguments: [ 'a', 'b', 'c', 'd', 'e', 'f' ] 
+})
+await redis.evalSha(sha, { 
+    keys: [ 'testz' ], 
+    arguments: [ 'a', 'b', 'c', 'd', 'e' ] 
+})
+await redis.evalSha(sha, { 
+    keys: [ 'testz' ], 
+    arguments: [ 'a', 'b', 'c', 'd' ] 
+})
+await redis.evalSha(sha, { 
+    keys: [ 'testz' ], 
+    arguments: [ 'a', 'b', 'c' ] 
+})
+await redis.evalSha(sha, { 
+    keys: [ 'testz' ], 
+    arguments: [ 'a', 'b' ] 
+})
+await redis.evalSha(sha, { 
+    keys: [ 'testz' ], 
+    arguments: [ 'a' ] 
+})
+console.log(await redis.evalShaRo(shaRo, { 
+    keys: [ 'testz' ], 
+    arguments: [ ] 
+}))
 
-> FCALL ZADDINCR 1 testz a
-(integer) 1
-
-> FCALL_RO ZSUMSCORE 1 testz
-(integer) 21
-```
-
-With `ZADDINCR` and `ZSUMSCORE`, it is possible to keep track of **Cardinality**, **Membership** and **Frequency** in a single3 Sorted Set. 
-```
-> ZCARD testz
-(integer) 6
-
-> ZSCORE testz a
-"6"
-
-> ZSCORE testz g
-(nil)
-
-> ZRANGE testz 0 -1 REV WITHSCORES
-1) "a"
-2) "6"
-3) "b"
-4) "5"
-5) "c"
-6) "4"
-7) "d"
-8) "3"
-9) "e"
-10) "2"
-11) "f"
-12) "1"
-```
-
-##### **Proof of concept**
-Sometimes it is handy to find out Hash with field containing some text, like so using SQL: 
-```
-SELECT id, textChi, visited 
-FROM documents 
-WHERE textChi LIKE '%鄭文公%'
-limit 10 OFFSET 0;
+await redis.close()
+process.exit(0)
 ```
 
-`scanTextChi` is practically doing a `SCAN` key and test of condition, it is an inefficient way of searching... 
+`output`
 ```
-> FCALL_RO SCANTEXTCHI 5 fts:chinese:documents:* key 鄭文公 0 10 id textChi visited
-1) 1) "11199"
-   2) "\xe9\x84\xad\xe6\x96\x87\xe5\x85\xac<br / ..."
-   3) "0"
-```
-```   
-> FCALL_RO SCANTEXTCHI 3 fts:chinese:documents:* key 鄭文公
-1) 1) "updatedAt"
-   2) ""
-   3) "updateIdent"
-   4) "0"
-   5) "createdAt"
-   6) "2025-07-17T00:36:15.301Z"
-   7) "id"
-   8) "11199"
-   9) "textChi"
-   10) "\xe9\x84\xad\xe6\x96\x87\xe5\x85\xac<br / ..."
-   11) "visited"
-   12) "0"
-   13) "key"
-   14) "\xe9\x84\xad\xe6\x96\x87\xe5\x85\xac"
-```
+node src/script1.js
+8.0.2
 
-##### **Raw interface**
-Call with `sendCommand`: 
+node src/script2.js
+21
 ```
-console.log(await redis.sendCommand(['FCALL_RO', 'VER', '0']))
-console.log(await redis.sendCommand(['FCALL_RO', 'COUNTKEYS', '0']))
-console.log(await redis.sendCommand(['FCALL_RO', 'SCANTEXTCHI', '3', 
-    'fts:chinese:documents:*', 'key', '陳文公', 
-    'id', 'key', 'textChi', 'visited']))
-console.log(await redis.sendCommand(['FCALL_RO', 'SCANTEXTCHI', '3', 
-    'fts:chinese:documents:*', 'key', '陳文公'])) 
-```
-
-![alt sendCommand](img/sendCommand.JPG)
-
-##### **The Wrapper**
-To wrap up with: 
-```
-redis.fCall = function(name, keys = [], args = []) {
-    const numkeys = keys.length.toString();
-    return this.sendCommand(['FCALL', name, numkeys, ...keys, ...args]);
-  };
-
-redis.fCallRo = function(name, keys = [], args = []) {
-    const numkeys = keys.length.toString();
-    return this.sendCommand(['FCALL_RO', name, numkeys, ...keys, ...args]);
-  };
-```
-
-And call it intuitively: 
-```
-console.log(await redis.fCallRo('ver', [], []))
-console.log(await redis.fCallRo('countKeys', [], []))
-console.log(await redis.fCallRo('scanTextChi', 
-    ['fts:chinese:documents:*', 'key', '陳文公'], 
-    ['id', 'key', 'textChi', 'visited']))
-console.log(await redis.fCallRo('scanTextChi', 
-    ['fts:chinese:documents:*', 'key', '陳文公']))
-```
-
-![alt fCall](img/fCall.JPG)
 
 
 #### V. Bibliography
