@@ -103,11 +103,11 @@ end
 -- Example usage: FCALL_RO CONSOLELOG 1 "Hello, World!"
 --                FCALL_RO CONSOLELOG 0 
 -- Output: "Ok"
-local function consoleLog(KEYS, ARGV)
+local function log(KEYS, ARGV)
   local message = KEYS[1] or 
   '"Years of love have been forgot, In the hatred of a minute." - Edgar Allan Poe'
 
-  redis.log(redis.LOG_WARNING, 'LOG > ' .. message)
+  redis.log(redis.LOG_NOTICE, 'LOG > ' .. message)
   return 'Ok'
 end
 
@@ -423,8 +423,8 @@ redis.register_function{
 }
 
 redis.register_function{
-  function_name = 'consoleLog',
-  callback = consoleLog,
+  function_name = 'log',
+  callback = log,
   flags = { 'no-writes' },
   description = 'Log message to redis.log'
 }
