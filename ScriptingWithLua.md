@@ -876,24 +876,26 @@ node:internal/modules/run_main:104
 [SimpleError: ERR redis.log() requires two arguments or more. script: 9a81afe7c8515723aefe02c8e6f7e1a87be3d5f2, on @user_script:18.]
 ```
 
-This is because `unpack(table2)` returns `nil, nil` which triggers the error.  Similarly, array style table has length; dictionary style table HAS NOT... Therefore, 
+![alt nil error](img/nil-error.JPG)
+
+This is because `unpack(table2)` returns `nil, nil` which triggers the error.  Similarly, array style table has length; dictionary style table *HAS NOT*... Therefore, 
 ```
     return { #table1, #table2 }
 ```
 
-Returns `[ 2, 0 ]` to the client. To set 'myhash' with
+Returns `[ 2, 0 ]` to the client. To set `myhash` with
 ```
     local table3 = { 'name', 'iong_dev', 'status', 'active', 'age', 59 }
 
     redis.call('HSET', 'myhash', unpack(table3))
 ```
 
-Which effectively the same as
+Which effectively do a
 ```
     HSET myhash name iong_dev status active age 59
 ```
 
-To encode with `cjson.encode` so that will see better. 
+To encode with `cjson.encode` so that will see better
 ```
     redis.log(redis.LOG_NOTICE, cjson.encode(table1))
 ```
@@ -904,24 +906,24 @@ Will output: '["iong_dev","active"]' in `redis.log`
 ```
 Will output: '{"name":"iong_dev","status":"active"}' in `redis.log`
 
-Last but not least, to return a dictionary style table using RESP3, instead of using: 
+Last but not least, to return a dictionary style table using RESP3, instead of using
 ```
     redis.setresp(3)
     return { name = "iong_dev", status = "active" }
 ```
 
-Which always gives `[]`, an empty array! You *should* use: 
+Which always gives `[]`, an empty array! You *should* use
 ```
     redis.setresp(3)
     return { map={ name = "iong_dev", status = "active" } }
 ```
 
-Which gives: 
+Which gives
 ```
 [Object: null prototype] { name: 'iong_dev', status: 'active' }
 ```
 
-A javascript objct! Be sure to use the following command before calling the Lua script. 
+A *real* javascript objct! Be sure to precede the script call with
 ```
 await redis.sendCommand(['HELLO', '3'])
 ```
