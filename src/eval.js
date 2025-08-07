@@ -16,6 +16,8 @@ const script = `
 
     local table4 = { name = "iong_dev", status = "active", 
                      [1]="berto_dev", [2]="inactive" } 
+    
+    local table5 = { ["name"] = "iong_dev", ["status"] = "active" }
 
     -- unpack() looks for numeric index starting from 1, which 
     -- doesn't exist in dictionary style table. 
@@ -41,6 +43,9 @@ const script = `
 
     redis.log(redis.LOG_NOTICE, unpack(table4))
     redis.log(redis.LOG_NOTICE, #table4)
+
+    redis.log(redis.LOG_NOTICE, unpack(table5))
+    redis.log(redis.LOG_NOTICE, #table5)
 
     -- returns: [ 2, 0 ]
     -- return { #table1, #table2 }
