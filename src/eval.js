@@ -34,12 +34,16 @@ const script = `
 
     -- Set the 'myhash', effectively the same as: 
     -- HSET myhash name iong_dev status active age 59
-    redis.call('HSET', 'myhash', unpack(table3))
+    redis.call('HSET', 'myhash', unpack(table3, 3, 6))
 
     -- returns: [ 2, 0 ]
-    return { #table1, #table2 }
+    -- return { #table1, #table2 }
+    -- return { name = "iong_dev", status = "active" }
+    redis.setresp(3)
+    return { map={ name = "iong_dev", status = "active" } }
 `
 await redis.connect()
+await redis.sendCommand(['HELLO', '3'])
 
 console.log(await redis.eval(script, { keys: [], arguments: [] }))
 

@@ -836,7 +836,28 @@ Or *explicitly* specify the index:
     local table2 = { name = "iong_dev", status = "active" }
 ```
 
-The difference is subtle and intricacy elusive... The [unpack](https://www.luadocs.com/docs/functions/table/unpack) function looks for numeric index starting from 1, which doesn't exist in dictionary style table. A call to 
+The difference is subtle and intricacy elusive... 
+
+The [unpack](https://www.luadocs.com/docs/functions/table/unpack) function returns the elements of a table as separate values, allowing you to easily use them in a function call or assign them to multiple variables.
+
+**Syntax**
+```
+unpack(tableData, start, end)
+```
+
+- `tableData` - The table containing the elements to be unpacked.
+- `start` - The index of the first element to unpack. Defaults to 1.
+- `end` - The index of the last element to unpack. If omitted, unpacks all elements from start to the end of the table.
+
+**Return**
+
+The function returns the elements of the table as separate values. If the specified indices are out of range, it returns nil.
+
+**Description**
+
+The `unpack()` function is particularly useful for passing table elements as arguments to functions that expect multiple parameters. It allows you to work with table data in a more flexible way.
+
+This function looks for numeric index starting from 1, which doesn't exist in dictionary style table. A call to 
 ```
     redis.log(redis.LOG_NOTICE, unpack(table1))
 ```
@@ -872,7 +893,40 @@ Which effectively the same as
     HSET myhash name iong_dev status active age 59
 ```
 
-[Mastering Lua Unpack Table: A Quick Guide](https://luascripts.com/lua-unpack-table)
+To encode with `cjson.encode` so that will see better. 
+```
+    redis.log(redis.LOG_NOTICE, cjson.encode(table1))
+```
+Will output: '["iong_dev","active"]' in `redis.log`
+
+```    
+    redis.log(redis.LOG_NOTICE, cjson.encode(table2))
+```
+Will output: '{"name":"iong_dev","status":"active"}' in `redis.log`
+
+Last but not least, to return a dictionary style table using RESP3, instead of using: 
+```
+    redis.setresp(3)
+    return { name = "iong_dev", status = "active" }
+```
+
+Which always gives `[]`, an empty array! You *should* use: 
+```
+    redis.setresp(3)
+    return { map={ name = "iong_dev", status = "active" } }
+```
+
+Which gives: 
+```
+[Object: null prototype] { name: 'iong_dev', status: 'active' }
+```
+
+A javascript objct! Be sure to use the following command before calling the Lua script. 
+```
+await redis.sendCommand(['HELLO', '3'])
+```
+
+- [Mastering Lua Unpack Table: A Quick Guide](https://luascripts.com/lua-unpack-table)
 
 
 ### EOF (2025/08/01)
