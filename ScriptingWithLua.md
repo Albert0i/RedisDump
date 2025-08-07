@@ -836,7 +836,7 @@ Or *explicitly* specify the index:
     local table2 = { name = "iong_dev", status = "active" }
 ```
 
-The difference is subtle and intricacy elusive... The [unpack](https://redis.io/docs/latest/develop/programmability/lua-api/#cjson-library:~:text=x00%5Cx02%5Cx00%22-,struct.unpack(x),-This%20function%20returns) function looks for numeric index starting from 1, which doesn't exist in dictionary style table. A call to 
+The difference is subtle and intricacy elusive... The [unpack](https://www.luadocs.com/docs/functions/table/unpack) function looks for numeric index starting from 1, which doesn't exist in dictionary style table. A call to 
 ```
     redis.log(redis.LOG_NOTICE, unpack(table1))
 ```
@@ -871,6 +871,8 @@ Which effectively the same as
 ```
     HSET myhash name iong_dev status active age 59
 ```
+
+[Mastering Lua Unpack Table: A Quick Guide](https://luascripts.com/lua-unpack-table)
 
 
 ### EOF (2025/08/01)
