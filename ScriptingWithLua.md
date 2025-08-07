@@ -1,5 +1,5 @@
 ### [Scripting with Lua](https://redis.io/docs/latest/develop/programmability/eval-intro/)
-> "And it is not a case of habit, feelings do not become blunted by dint of habit when it’s a simple matter of judgement; one just has to abandon one’s misconceptions."<br />The Castle by Franz Kafka
+> "‘it was no one’s fault, no one could act in any other way, it was all the influence of the castle.’<br />The Castle by Franz Kafka" 
 
 
 #### Prologue 
