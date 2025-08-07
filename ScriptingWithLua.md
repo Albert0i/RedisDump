@@ -860,15 +860,14 @@ This is because `unpack(table2)` returns `nil, nil` which triggers the error.  S
     return { #table1, #table2 }
 ```
 
-Returns `[ 2, 0 ]` to client. 
-
+Returns `[ 2, 0 ]` to the client. To set 'myhash' with
 ```
     local table3 = { 'name', 'iong_dev', 'status', 'active', 'age', 59 }
 
     redis.call('HSET', 'myhash', unpack(table3))
 ```
 
-To set et the 'myhash', which effectively the same as
+Which effectively the same as
 ```
     HSET myhash name iong_dev status active age 59
 ```
