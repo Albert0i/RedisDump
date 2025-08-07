@@ -532,9 +532,9 @@ For those who don't want to crawl through official documentations:
 - [Scripting with Lua](https://redis.io/docs/latest/develop/programmability/eval-intro/) describes Lua Scripting in Redis in general.
 - [Redis functions](https://redis.io/docs/latest/develop/programmability/functions-intro/) describes the new Redis Functions features. 
 
-Redis, as a memory first multi-model database, does provide means to craft code running on server-side. [Lua](https://en.wikipedia.org/wiki/Lua) is a small language for embedded devices. Most developers do not familiar with Lua, I think, but it's not difficult to learn. 
+Redis, as a memory first multi-model database, provides means to craft code running on server-side akin to [Stored Procedure](https://en.wikipedia.org/wiki/Stored_procedure) in [RDBMS](https://en.wikipedia.org/wiki/Relational_database). [Lua](https://en.wikipedia.org/wiki/Lua) is a small and simple language targeting for embedded environment which is the languaged used in Redis context. While Lua has its own peculiarity but it is not difficult to learn, a video like [Full Lua Crash Course 💥 2.5 Hours 🖥️⌨️ Beginner's Programming Fundamentals Guide for Developers](https://youtu.be/zi-svfdcUc8) will pretty much give you everything you need. 
 
-To be in line with the idea of **Quick Start**, you should first pen down what and how you want you want and how to fulfil, ask HIM. I mean AI, to create the base code for you, that will save you in most cases. 
+To be in line with the idea of **Quick Start**, you should first pen down what and how, then go ahead to ask HIM. I mean AI, to create the base code for you, that will save you some time in most cases. 
 
 `zAddIncr.lua`
 ```
@@ -566,21 +566,28 @@ end
 return total
 ```
 
-To execute a Lua script, either from source or cache; either read/write or read only, take similar form of parameters: 
+To execute a Lua script, either from source or cache; read/write or read only, bear similar form of parameters: 
 ```
 EVAL script numkeys [key [key ...]] [arg [arg ...]]
 ```
 
 The `numkeys` matters, for example in the following script: 
 ```
-EVAL "return { KEYS=KEYS, ARGV=ARGV }" 0 a b c d e f
+EVAL "return { [1]=KEYS, [2]=ARGV }" 0 a b c d e f
 ```
 
-Repeatedly executing this script but keeps changing `numkeys` from 0 to 6 will show you how `numkeys` affects `KEYS` and `ARGV`, the Global variables. 
+Or in RESP3: 
+```
+EVAL "return { map={ KEYS=KEYS, ARGV=ARGV }}" 0 a b c d e f
+```
+
+Repeatedly executing this script by increasing `numkeys` from 0 to 6 will show you how `numkeys` affects `KEYS` and `ARGV`: 
 
 ![alt KEYS-ARGV](img/KEYS-ARGV.JPG)
 
-It is recommended to use `KEYS` for keys to be operated and `ARGV` for values to accomplish the operation. 
+![alt KEYS-ARGV-RESP3](img/KEYS-ARGV-RESP3.JPG)
+
+It is recommended to use `KEYS` for keys to be operated and `ARGV` for values to accomplish the operation but it is not *mandatory* to do so. 
 
 Use `INFO MEMORY` to check memory consumption: 
 ```
@@ -603,7 +610,7 @@ Not every runtime functions can be used, even though it is present in official d
 "ERR user_script:1: Script attempted to access nonexistent global variable 'os' script: ea58cfad299460ea863f576834104a675e48c28c, on @user_script:1."
 ```
 
-Debuging Lua script is difficult, all the while you may feel necessary to print out something to check for. In this case you may need:
+Debuging Lua script is difficult, all the while you may feel necessary to print out values to check for. In this case you may need:
 ```
 > EVAL "return redis.log(redis.LOG_NOTICE, 'This is a notice')" 0
 (nil)
@@ -634,8 +641,6 @@ logfile "C:\\redis\\redis.log"
 ```
 
 Please refer to [Redis configuration](https://redis.io/docs/latest/operate/oss_and_stack/management/config/) for complete reference. 
-
-Done!
 
 
 #### IV. Example usage
