@@ -956,5 +956,59 @@ FUNCTION <subcommand> [<arg> [value] [opt] ...]. Subcommands are:
 
 #### Epilogue 
 
+["Strange Case of Lua Table"](https://www.gutenberg.org/files/43/43-h/43-h.htm)
+
+The *one and only one* data structure in Lua is table, which has two favours: 
+- **Array style table** 
+```
+    local table1 = { "iong_dev", "active" }
+```
+
+Or *explicitly* specify the index: 
+```    
+    local table1 = { [1] = "iong_dev", [2] = "active" }
+```
+
+- **Dictionary style table** 
+```
+    local table2 = { name = "iong_dev", status = "active" }
+```
+
+The difference is subtle and intricacy elusive... The [unpack](https://redis.io/docs/latest/develop/programmability/lua-api/#cjson-library:~:text=x00%5Cx02%5Cx00%22-,struct.unpack(x),-This%20function%20returns) function looks for numeric index starting from 1, which doesn't exist in dictionary style table. A call to 
+```
+    redis.log(redis.LOG_NOTICE, unpack(table1))
+```
+
+Will output: 'iong_dev active' in `redis.log`. Whereas a call to
+```
+    redis.log(redis.LOG_NOTICE, unpack(table2))
+```
+
+Results in an error. 
+```
+node:internal/modules/run_main:104
+    triggerUncaughtException(
+    ^
+
+[SimpleError: ERR redis.log() requires two arguments or more. script: 9a81afe7c8515723aefe02c8e6f7e1a87be3d5f2, on @user_script:18.]
+```
+
+This is because `unpack(table2)` returns `nil, nil` which triggers the error.  Similarly, array style table has length; dictionary style table HAS NOT... Therefore, 
+```
+    return { #table1, #table2 }
+```
+
+Returns `[ 2, 0 ]` to the client. To set 'myhash' with
+```
+    local table3 = { 'name', 'iong_dev', 'status', 'active', 'age', 59 }
+
+    redis.call('HSET', 'myhash', unpack(table3))
+```
+
+Which effectively the same as
+```
+    HSET myhash name iong_dev status active age 59
+```
+
 
 ### EOF (2025/08/01)
