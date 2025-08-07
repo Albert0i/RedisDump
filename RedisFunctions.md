@@ -1066,6 +1066,15 @@ A *real* javascript objct! Be sure to precede the script call with
 await redis.sendCommand(['HELLO', '3'])
 ```
 
+As a bonus, what is the expected behaviour of this code? 
+```
+    local table4 = { name = "iong_dev", status = "active", 
+                     [1]="berto_dev", [2]="inactive" } 
+
+    redis.log(redis.LOG_NOTICE, unpack(table4))
+    redis.log(redis.LOG_NOTICE, #table4)
+```
+
 - [Mastering Lua Unpack Table: A Quick Guide](https://luascripts.com/lua-unpack-table)
 
 

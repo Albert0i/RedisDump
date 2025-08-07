@@ -14,6 +14,9 @@ const script = `
 
     local table3 = { 'name', 'iong_dev', 'status', 'active', 'age', 59 }
 
+    local table4 = { name = "iong_dev", status = "active", 
+                     [1]="berto_dev", [2]="inactive" } 
+
     -- unpack() looks for numeric index starting from 1, which 
     -- doesn't exist in dictionary style table. 
     redis.log(redis.LOG_NOTICE, unpack(table1))
@@ -34,7 +37,10 @@ const script = `
 
     -- Set the 'myhash', effectively the same as: 
     -- HSET myhash name iong_dev status active age 59
-    redis.call('HSET', 'myhash', unpack(table3, 3, 6))
+    redis.call('HSET', 'myhash', unpack(table3))
+
+    redis.log(redis.LOG_NOTICE, unpack(table4))
+    redis.log(redis.LOG_NOTICE, #table4)
 
     -- returns: [ 2, 0 ]
     -- return { #table1, #table2 }
