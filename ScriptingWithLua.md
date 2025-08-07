@@ -820,7 +820,7 @@ FUNCTION <subcommand> [<arg> [value] [opt] ...]. Subcommands are:
 
 ["Strange Case of Lua Table"](https://www.gutenberg.org/files/43/43-h/43-h.htm)
 
-The one and only one data structure in Lua is table, which has two favours: 
+The *one and only one* data structure in Lua is table, which has two favours: 
 - **Array style table** 
 ```
     local table1 = { "iong_dev", "active" }
