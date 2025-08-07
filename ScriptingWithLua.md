@@ -573,7 +573,7 @@ EVAL script numkeys [key [key ...]] [arg [arg ...]]
 
 The `numkeys` matters, for example in the following script: 
 ```
-EVAL "return { [1]=KEYS, [2]=ARGV }" 0 a b c d e f
+EVAL "return { KEYS, ARGV }" 0 a b c d e f
 ```
 
 Or in RESP3: 
