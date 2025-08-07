@@ -1016,7 +1016,7 @@ node:internal/modules/run_main:104
 
 ![alt nil error](img/nil-error.JPG)
 
-This is because `unpack(table2)` returns `nil, nil` which triggers the error.  Similarly, array style table has length; dictionary style table *HAS NOT*... Therefore, 
+This is because `unpack(table2)` returns `nil` which triggers the error.  Similarly, array style table has length; dictionary style table *HAS NOT*... Therefore, 
 ```
     return { #table1, #table2 }
 ```
