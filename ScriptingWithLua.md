@@ -858,6 +858,7 @@ return cnt
 
 Please refer to [Fun With Cache](https://github.com/Albert0i/RU204/blob/main/cache.md) for details. 
 
+To add cache to [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch): 
 
 `hisFetch.js`
 ```
@@ -901,7 +902,6 @@ export { hisFetch }
 ```
 
 Please refer to [JJSR](https://github.com/Albert0i/jest-course/blob/main/JJSR.md) for details. 
-
 
 
 #### V. Bibliography
