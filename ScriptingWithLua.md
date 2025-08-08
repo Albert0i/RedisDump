@@ -642,6 +642,17 @@ logfile "C:\\redis\\redis.log"
 
 Please refer to [Redis configuration](https://redis.io/docs/latest/operate/oss_and_stack/management/config/) for complete reference. 
 
+The following example shows how floats and arrays that cont nils and keys are handled:
+```
+redis> EVAL "return { 1, 2, 3.3333, somekey = 'somevalue', 'foo', nil , 'bar' }" 0
+1) (integer) 1
+2) (integer) 2
+3) (integer) 3
+4) "foo"
+```
+
+As you can see, the float value of *3.333* gets converted to an integer *3*, the *somekey* key and its value are omitted, and the string "bar" isn't returned as there is a nil value that precedes it.
+
 
 #### IV. Example usage
 
