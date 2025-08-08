@@ -644,6 +644,9 @@ Please refer to [Redis configuration](https://redis.io/docs/latest/operate/oss_a
 
 
 #### IV. Example usage
+
+##### **Javascript**
+
 `script1.js`
 ```
 import fs from 'fs';
@@ -736,6 +739,8 @@ node src/script2.js
 21
 ```
 
+##### **Simple Cache**
+
 While many of us still conceive Redis a **cache mechanism**, it is not that Redis is a cache but that it is *easy* to implement a cache with Redis: 
 
 - **Cache Aside** : A read operation first checks if it is cached, if it is, just returns the cached data; If it isn't, reads data from database, stores in cache and returns the data; 
@@ -770,6 +775,8 @@ The only thing you need to know is how to connect to Redis and two commands: [GE
 await redis.expire(`cache:user:${id}`, 60 );
 return JSON.parse(cacheData);
 ```
+
+##### **Advanced Cache**
 
 A more advanced cache involves three operations: **read cache**, **write cache** and **invalidate cache**. Each cached data is associated with one or more *tags*. To invalidate a tag triggers removel of all accompanied cached data. 
 
@@ -858,7 +865,7 @@ return cnt
 
 Please refer to [Fun With Cache](https://github.com/Albert0i/RU204/blob/main/cache.md) for details. 
 
-To add cache to [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch): 
+##### **Add cache to [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch)**
 
 `hisFetch.js`
 ```
