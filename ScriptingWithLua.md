@@ -750,7 +750,7 @@ async function getUserById(id) {
         return JSON.parse(cacheData);
     } else {
         // Cache miss
-        const user = await getUserFromDbById(id);
+        const user = await getUserByIdFromDb(id);
         await redis.set(`cache:user:${id}`, JSON.stringify(user), { EX: 60 });
         return user;
     }
