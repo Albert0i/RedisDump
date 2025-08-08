@@ -854,6 +854,8 @@ end
 return cnt
 ```
 
+Please refer to [Fun With Cache](https://github.com/Albert0i/RU204/blob/main/cache.md) for details. 
+
 
 #### V. Bibliography
 1. [Redis programmability](https://redis.io/docs/latest/develop/programmability/)
