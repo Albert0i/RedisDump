@@ -859,6 +859,51 @@ return cnt
 Please refer to [Fun With Cache](https://github.com/Albert0i/RU204/blob/main/cache.md) for details. 
 
 
+`hisFetch.js`
+```
+import { redisClient } from "./config/redisClient.js"
+
+const DEFAULT_NAMESPACE = "cache"
+const DEFAULT_STATUS = 'cacheStatus'
+const DEFAULT_TTL = 60    // seconds 
+
+function hisFetch(url, options) {
+    return new Promise( async (resolve, reject) => {
+      const value = await redisClient.get(`${DEFAULT_NAMESPACE}:${url}`)
+
+      if (value) { 
+          // cache hit 
+          let json = JSON.parse(value)
+          json[DEFAULT_STATUS] = 'hit'
+          resolve(json) 
+        }
+      else {
+        // cache miss 
+        try {
+          const response = await fetch(url, options)          
+
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          } else {
+            let data = await response.json()
+            await redisClient.set(`${DEFAULT_NAMESPACE}:${url}`, JSON.stringify(data), 'EX', DEFAULT_TTL)
+            data[DEFAULT_STATUS] = 'miss'
+            resolve(data) // Resolve the Promise with the retrieved data
+          }
+        } catch (error) {
+          reject(error) // Reject the Promise with the error
+        }
+      }
+    });
+  } 
+
+export { hisFetch }
+```
+
+Please refer to [JJSR](https://github.com/Albert0i/jest-course/blob/main/JJSR.md) for details. 
+
+
+
 #### V. Bibliography
 1. [Redis programmability](https://redis.io/docs/latest/develop/programmability/)
 2. [Scripting with Lua](https://redis.io/docs/latest/develop/programmability/eval-intro/)
