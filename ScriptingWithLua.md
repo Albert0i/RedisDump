@@ -653,6 +653,8 @@ redis> EVAL "return { 1, 2, 3.3333, somekey = 'somevalue', 'foo', nil , 'bar' }"
 
 As you can see, the float value of *3.333* gets converted to an integer *3*, the *somekey* key and its value are omitted, and the string "bar" isn't returned as there is a nil value that precedes it.
 
+**If you want to return a Lua float, it should be returned as a string, use `tostring(3.3333)` in previous case.**
+
 Use `redis.status_reply(x)` to returns a simple string reply. "OK" is an example of a standard Redis status reply. The Lua API represents status replies as tables with a single field, ok, set with a simple status string.
 ```
 redis> EVAL "return redis.status_reply('OK')" 0
