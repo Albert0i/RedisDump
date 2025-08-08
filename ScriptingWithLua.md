@@ -653,6 +653,20 @@ redis> EVAL "return { 1, 2, 3.3333, somekey = 'somevalue', 'foo', nil , 'bar' }"
 
 As you can see, the float value of *3.333* gets converted to an integer *3*, the *somekey* key and its value are omitted, and the string "bar" isn't returned as there is a nil value that precedes it.
 
+Use `redis.status_reply(x)` to returns a simple string reply. "OK" is an example of a standard Redis status reply. The Lua API represents status replies as tables with a single field, ok, set with a simple status string.
+```
+redis> EVAL "return redis.status_reply('OK')" 0
+OK
+```
+
+Use `redis.error_reply(x)` to return Redis error replies. 
+```
+redis> EVAL "return redis.error_reply('ERR My very special reply error')" 0
+(error) ERR My very special reply error
+```
+
+**Note**: By convention, Redis uses the first word of an error string as a unique error code for specific errors or ERR for general-purpose errors. Scripts are advised to follow this convention, as shown in the example above, but this is not mandatory.
+
 
 #### IV. Example usage
 
