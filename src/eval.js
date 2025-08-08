@@ -4,6 +4,30 @@ import { redis } from './redis/redis.js'
    main 
 */
 const script = `
+    local reply = redis.pcall('ECHO', unpack(ARGV))
+    if reply['err'] ~= nil then
+    -- Handle the error sometime, but for now just log it
+    redis.log(redis.LOG_WARNING, reply['err'])
+    reply['err'] = 'ERR Something is wrong, but no worries, everything is under control'
+    end
+    return reply
+`
+await redis.connect()
+await redis.sendCommand(['HELLO', '3'])
+
+console.log(await redis.eval(script, { keys: [], arguments: ["hello", "world"] }))
+
+await redis.close()
+process.exit(0)
+
+/*
+node:internal/modules/run_main:104
+    triggerUncaughtException(
+    ^
+
+[SimpleError: ERR redis.log() requires two arguments or more. script: 9a81afe7c8515723aefe02c8e6f7e1a87be3d5f2, on @user_script:18.]
+*/
+const script2 = `
     -- array style table
     local table1 = { "iong_dev", "active" }
     -- Or explicitly specify the index
@@ -53,18 +77,3 @@ const script = `
     redis.setresp(3)
     return { map={ name = "iong_dev", status = "active" } }
 `
-await redis.connect()
-await redis.sendCommand(['HELLO', '3'])
-
-console.log(await redis.eval(script, { keys: [], arguments: [] }))
-
-await redis.close()
-process.exit(0)
-
-/*
-node:internal/modules/run_main:104
-    triggerUncaughtException(
-    ^
-
-[SimpleError: ERR redis.log() requires two arguments or more. script: 9a81afe7c8515723aefe02c8e6f7e1a87be3d5f2, on @user_script:18.]
-*/
