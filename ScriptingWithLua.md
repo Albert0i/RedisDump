@@ -736,7 +736,7 @@ node src/script2.js
 21
 ```
 
-While many of us still conceive Redis a **cache mechanism**, it is not that Redis is a cache but that it is *easy* to implement a cache with Redis with: 
+While many of us still conceive Redis a **cache mechanism**, it is not that Redis is a cache but that it is *easy* to implement a cache with Redis: 
 
 - **Cache Aside** : A read operation first checks if it is cached, if it is, just returns the cached data; If it isn't, reads data from database, stores in cache and returns the data; 
 - **Write Through**: An update operation always updates the cache; 
