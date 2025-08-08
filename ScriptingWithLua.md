@@ -757,19 +757,21 @@ async function getUserById(id) {
 }
 
 async function updateUser(user) {
-    await updateUserToDb(user);
+    const result = await updateUserToDb(user);
     await redis.set(`cache:user:${user.id}`, JSON.stringify(user), { EX: 60 });
+
+    return result
 }
 ```
 
-The only thing you need to know is how to connect to Redis and to more commands: [GET](https://redis.io/docs/latest/commands/get/) and [SET](https://redis.io/docs/latest/commands/set/). You can use hashed endpoint URL, SQL statement or anything you can imagine as cache key, a TTL is used to avoid Redis running out of memory. Optionally, you can reset the TTL of cached data on each read with. 
+The only thing you need to know is how to connect to Redis and two more commands: [GET](https://redis.io/docs/latest/commands/get/) and [SET](https://redis.io/docs/latest/commands/set/). You can use hashed endpoint URL, SQL statement or anything you can imagine as cache key provided that it is consistent, TTL is used to avoid Redis running out of memory. Optionally, you can reset the TTL of cached data on each read. 
 ```
 // Cache hit
 await redis.expire(`cache:user:${id}`, 60 );
 return JSON.parse(cacheData);
 ```
 
-A more advanced cache involves three operations: **read cache**, **write cache** and **invalidate cache**. Each cached data is associated with one or more tags. To invalidate a tag triggers removel of all accompanied cached data. 
+A more advanced cache involves three operations: **read cache**, **write cache** and **invalidate cache**. Each cached data is associated with one or more *tags*. To invalidate a tag triggers removel of all accompanied cached data. 
 
 `readCache.lua`
 ```
