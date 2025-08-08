@@ -736,6 +736,124 @@ node src/script2.js
 21
 ```
 
+While many of us still conceive Redis a **cache mechanism**, it is not that Redis is a cache but that it is *easy* to implement a cache with Redis:  
+
+- **Cache Aside** : A read operation first check if it is cached, if it is, return the cached data; If it is not, read data from database, store in cache and return the data; 
+- **Write Through**: An update operation always update the cache; 
+
+```
+async function getUserById(id) {
+    const cacheData = await redis.get(`cache:user:${id}`);
+
+    if (cacheData) {
+        // Cache hit
+        return JSON.parse(cacheData);
+    } else {
+        // Cache miss
+        const user = await getUserFromDbById(id);
+        await redis.set(`cache:user:${id}`, JSON.stringify(user), { EX: 60 });
+        return user;
+    }
+}
+
+async function updateUser(user) {
+    await updateUserToDb(user);
+    await redis.set(`cache:user:${user.id}`, JSON.stringify(user), { EX: 60 });
+}
+```
+
+The only thing you need to know is how to connect to Redis and to more commands: [GET](https://redis.io/docs/latest/commands/get/) and [SET](https://redis.io/docs/latest/commands/set/). You can use hashed endpoint URL, SQL statement or anything you can imagine as cache key, a TTL is used to avoid Redis running out of memory. Optionally, you can reset the TTL of cached data on each read with. 
+```
+// Cache hit
+await redis.expire(`cache:user:${id}`, 60 );
+return JSON.parse(cacheData);
+```
+
+A more advanced cache involves three operations: **read cache**, **write cache** and **invalidate cache**. Each cached data is associated with one or more tags. To invalidate a tag triggers removel of all accompanied cached data. 
+
+`readCache.lua`
+```
+-- Retrieve a stored value in 'prefix:data:<key>' key format
+-- @param KEYS[1] (string) The prefix 
+-- @param KEYS[2] (string) The key
+-- @return (string) The result of the GET operation.
+
+local key = KEYS[1]..'data:'..KEYS[2] 
+local value = redis.call('GET', key)
+
+return value
+```
+
+`writeCache.lua`
+```
+-- Store a value in 'prefix:data:<key>' key format and 
+-- add the key to tag set(s) in 'prefix:tag:<tag>' key format
+-- @param KEYS[1] (string) The prefix 
+-- @param KEYS[2] (string) The key
+-- @param KEYS[3] (string) The TTL
+-- @param ARGV[1] (string) The value
+-- @param ARGV[2]~ARGV[n] (string) The tag(s)
+-- @return (number) The number of successful SADD operation(s)
+
+local key = KEYS[1]..'data:'..KEYS[2] 
+local ttl = tonumber(KEYS[3], 10)
+local value = ARGV[1]
+
+-- check TTL 
+assert (type(ttl) == 'number', "Invalid TTL in 'writeCache'")
+
+-- store the value 
+local result1 = nil
+if ttl==-1 then
+    result1 = redis.call('SET', key, value)
+else
+    result1 = redis.call('SET', key, value, 'EX', tostring(ttl))
+end
+assert (result1.ok == 'OK', "Failed to SET in 'writeCache'")
+
+-- iterate through each tag(s) and add key to set
+local result2 = 0
+for i = 2, #ARGV do
+    result2 = result2 + redis.call('SADD', KEYS[1]..'tag:'..ARGV[i], key)
+end
+
+return result2
+```
+
+`invalidateCache.lua`
+```
+-- Invalidate tag(s)
+-- @param KEYS[1] (string) The prefix 
+-- @param ARGV[1]~ARGV[n] (string) The tag(s)
+-- @return (number) The number of successful DEL operation(s)
+
+local result = nil
+local cursor = "0"
+local members = nil
+local cnt = 0
+
+-- iterate through each tag set(s)
+for _, value in pairs(ARGV) do
+    -- iterate through each member of individual set via SSCAN
+    repeat
+        result = redis.call("SSCAN", KEYS[1]..'tag:'..value, cursor)
+        cursor = result[1]  -- prepare for next SSCAN operation 
+        members = result[2] -- members returned so far 
+        
+        -- iterate through each member of in members 
+        for _, member in pairs(members) do
+            -- DEL a stored value
+            cnt = cnt + redis.call('DEL', member) 
+        end
+    until cursor == "0"
+
+    -- DEL the tag set
+    cnt = cnt + redis.call('DEL', KEYS[1]..'tag:'..value) 
+end
+
+return cnt
+```
+
 
 #### V. Bibliography
 1. [Redis programmability](https://redis.io/docs/latest/develop/programmability/)
