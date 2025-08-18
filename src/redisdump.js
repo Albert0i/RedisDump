@@ -7,6 +7,17 @@ import { format } from 'date-fns';
 import { info } from './help.js'
 import { luaCountKey } from './countKeys.js'
 
+function escapeSpecialChars(str) {
+  return str
+    .replace(/\\/g, '\\\\')   // escape backslash
+    .replace(/"/g, '\\"')     // escape double quote
+    .replace(/'/g, "\\'")     // escape single quote
+    .replace(/`/g, '\\`')     // escape backtick
+    .replace(/\r/g, '\\r')    // escape carriage return
+    .replace(/\n/g, '\\n')    // escape linefeed
+    .replace(/\t/g, '\\t');   // escape tab
+}
+
 async function dumpRedis(prefix, scanCount, outputFile) {
   const output = createWriteStream(outputFile, { flags: 'w' });
   let counter = 0; 
@@ -53,9 +64,18 @@ async function dumpRedis(prefix, scanCount, outputFile) {
             });
             break;
           }
-          case 'hash': {
+/*        case 'hash': {
             const fields = await redis.hGetAll(key);
             const flat = Object.entries(fields).map(([k, v]) => `"${k}" "${v}"`).join(' ');
+            output.write(`HSET "${key}" ${flat}\n`);
+            break;
+          } */
+         // Escape special characters (experimental)
+          case 'hash': {
+            const fields = await redis.hGetAll(key);
+            const flat = Object.entries(fields)
+              .map(([k, v]) => `"${k}" "${escapeSpecialChars(v)}"`)
+              .join(' ');
             output.write(`HSET "${key}" ${flat}\n`);
             break;
           }
